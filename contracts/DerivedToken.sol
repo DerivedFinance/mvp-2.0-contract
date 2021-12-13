@@ -1,11 +1,13 @@
-pragma solidity ^0.5.0;
+// SPDX-License-Identifier: MIT
 
-import {ERC20} from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
-import {ERC20Detailed} from "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
-import {ERC20Burnable} from "openzeppelin-solidity/contracts/token/ERC20/ERC20Burnable.sol";
+pragma solidity ^0.8.0;
 
-contract DerivedToken is ERC20, ERC20Detailed, ERC20Burnable {
-    constructor(uint256 initialSupply) public ERC20Detailed("DerivedToken", "USDx", 18) {
-        _mint(msg.sender, initialSupply * 1e18);
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+
+// Derived token - Simple for now to test binary options
+contract DerivedToken is ERC20, ERC20Burnable {
+    constructor(uint256 initialSupply) ERC20("Derived Dollar", "USDx") {
+        _mint(msg.sender, initialSupply);
     }
 }
