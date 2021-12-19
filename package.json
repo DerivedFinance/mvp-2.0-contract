@@ -1,58 +1,39 @@
 {
-  "name": "conditional-tokens-tutorial",
-  "version": "0.1.0",
-  "private": true,
+  "name": "derived-prediction",
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.3",
+    "@nomiclabs/hardhat-etherscan": "^2.1.8",
+    "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "chai": "^4.3.4",
+    "dotenv": "^10.0.0",
+    "eslint": "^7.32.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-config-standard": "^16.0.3",
+    "eslint-plugin-import": "^2.25.3",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^3.4.1",
+    "eslint-plugin-promise": "^5.2.0",
+    "ethereum-waffle": "^3.4.0",
+    "ethers": "^5.5.2",
+    "hardhat": "^2.7.1",
+    "hardhat-gas-reporter": "^1.0.6",
+    "prettier": "^2.5.1",
+    "prettier-plugin-solidity": "^1.0.0-beta.13",
+    "solhint": "^3.3.6",
+    "solidity-coverage": "^0.7.17"
+  },
   "dependencies": {
-    "@gnosis.pm/util-contracts": "3.0.0-alpha.3",
-    "@material-ui/core": "4.12.3",
-    "@testing-library/jest-dom": "5.14.1",
-    "@testing-library/react": "12.0.0",
-    "@testing-library/user-event": "13.2.1",
-    "@truffle/contract": "4.3.33",
-    "@truffle/hdwallet-provider": "1.5.0",
-    "@types/jest": "27.0.1",
-    "@types/react": "17.0.20",
-    "@types/react-dom": "17.0.9",
-    "@walletconnect/web3-provider": "1.6.5",
-    "bignumber.js": "9.0.1",
-    "decimal.js-light": "2.5.1",
-    "dotenv": "10.0.0",
-    "openzeppelin-solidity": "2.3.0",
-    "prettier": "2.3.2",
-    "react": "17.0.2",
-    "react-app-rewired": "2.1.8",
-    "react-dev-utils": "11.0.4",
-    "react-dom": "17.0.2",
-    "react-scripts": "4.0.3",
-    "truffle-plugin-verify": "0.5.18",
-    "typescript": "~4.4.2",
-    "web3": "1.5.2",
-    "web3connect": "1.0.0-beta.33"
+    "@openzeppelin/contracts": "^4.4.0"
+  },
+  "description": "This project demonstrates an advanced Hardhat use case, integrating other tools commonly used alongside Hardhat in the ecosystem.",
+  "version": "1.0.0",
+  "main": ".eslintrc.js",
+  "directories": {
+    "test": "test"
   },
   "scripts": {
-    "start": "react-app-rewired start",
-    "build": "react-app-rewired build",
-    "test": "react-app-rewired test",
-    "eject": "react-scripts eject",
-    "prettier": "prettier --write './src/**/*.{ts,tsx}'",
-    "prettier-check": "prettier --check './src/**/*.{ts,tsx}'"
+    "test": "npx hardhat test"
   },
-  "eslintConfig": {
-    "extends": "react-app"
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
-  "devDependencies": {
-    "truffle": "^5.4.23"
-  }
+  "author": "",
+  "license": "ISC"
 }
