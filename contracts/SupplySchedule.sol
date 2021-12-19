@@ -9,7 +9,9 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./libraries/Math.sol";
 import "./libraries/SafeDecimalMath.sol";
 
-contract SupplySchedule is Ownable {
+import "./interfaces/ISupplySchedule.sol";
+
+contract SupplySchedule is Ownable, ISupplySchedule {
     using Math for uint256;
     using SafeMath for uint256;
     using SafeDecimalMath for uint256;
