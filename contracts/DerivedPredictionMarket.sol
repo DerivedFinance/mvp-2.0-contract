@@ -9,14 +9,12 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract DerivedPredictionMarket is
     DerivedPredictionMarketData,
     ERC1155,
     ERC1155Burnable,
     ERC1155Holder,
-    ReentrancyGuard,
     Ownable
 {
     constructor() ERC1155("https://derived.fi/images/logo.png") {
@@ -161,7 +159,6 @@ contract DerivedPredictionMarket is
         external
         _checkQuestion(_questionId)
         _checkResolvedQuestion(_questionId)
-        nonReentrant
     {
         uint256 slotIndex = questions[_questionId].slotIndex;
         uint256 answerId = generateAnswerId(_questionId, slotIndex);
@@ -192,7 +189,6 @@ contract DerivedPredictionMarket is
         external
         _onlyQuestionMaker(_questionId)
         _checkAvailableTradeFee(_questionId)
-        nonReentrant
     {
         IERC20(questions[_questionId].collateral).transfer(
             msg.sender,
@@ -215,7 +211,6 @@ contract DerivedPredictionMarket is
         external
         _checkQuestion(_questionId)
         _checkUnResolvedQuestion(_questionId)
-        nonReentrant
     {
         require(_amount > 0, "Invalid buy amount");
         require(_slotIndex < 2, "Invalid answer");
@@ -262,7 +257,6 @@ contract DerivedPredictionMarket is
         external
         _checkQuestion(_questionId)
         _checkUnResolvedQuestion(_questionId)
-        nonReentrant
     {
         require(_amount > 0, "Invalid sell amount");
         require(_slotIndex < 2, "Invalid answer");
