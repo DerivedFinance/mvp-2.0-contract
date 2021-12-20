@@ -34,8 +34,6 @@ async function main() {
   // Deploy SharkNFT contract
   const SupplySchedule = await hre.ethers.getContractFactory("SupplySchedule", {
     libraries: {
-      // Math: mathLib.address,
-      // SafeMath: safeMathLib.address,
       SafeDecimalMath: safeDecimalMathLib.address,
     },
   });
