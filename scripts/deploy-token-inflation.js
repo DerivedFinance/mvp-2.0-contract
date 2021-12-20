@@ -7,19 +7,19 @@ async function main() {
   const initialSupply =
     process.env.INITIAL_SUPPLY || "1000000000000000000000000";
 
-  // Deploy SafeMath
+  // Deploy SafeMath library
   const SafeMathLib = await hre.ethers.getContractFactory("SafeMath");
   const safeMathLib = await SafeMathLib.deploy();
   await safeMathLib.deployed();
 
-  // Deploy SafeDecimalMath
+  // Deploy SafeDecimalMath library
   const SafeDecimalMathLib = await hre.ethers.getContractFactory(
     "SafeDecimalMath"
   );
   const safeDecimalMathLib = await SafeDecimalMathLib.deploy();
   await safeDecimalMathLib.deployed();
 
-  // Deploy Math
+  // Deploy Math library
   const MathLib = await hre.ethers.getContractFactory("Math");
   const mathLib = await MathLib.deploy();
   await mathLib.deployed();
@@ -47,15 +47,30 @@ async function main() {
   console.log(`SupplySchedule deployed: ${supplySchedule.address}`);
 
   // Contract verification
-  // await hre.run("verify:verify", {
-  //   address: derivedToken.address,
-  //   constructorArguments: [initialSupply],
-  // });
+  await hre.run("verify:verify", {
+    address: safeMathLib.address,
+  });
 
-  // await hre.run("verify:verify", {
-  //   address: supplySchedule.address,
-  //   constructorArguments: [lastMintEvent, currentWeek, derivedToken.address],
-  // });
+  await hre.run("verify:verify", {
+    address: safeDecimalMathLib.address,
+  });
+
+  await hre.run("verify:verify", {
+    address: mathLib.address,
+  });
+
+  await hre.run("verify:verify", {
+    address: derivedToken.address,
+    constructorArguments: [initialSupply],
+  });
+
+  await hre.run("verify:verify", {
+    address: supplySchedule.address,
+    constructorArguments: [lastMintEvent, currentWeek, derivedToken.address],
+    libraries: {
+      SafeDecimalMath: safeDecimalMathLib.address,
+    },
+  });
 
   // console.log(
   //   `npx hardhat verify --contract contracts/SupplySchedule.sol:SupplySchedule ${supplySchedule.address} --network rinkeby`
