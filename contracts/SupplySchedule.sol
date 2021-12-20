@@ -9,7 +9,9 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./libraries/Math.sol";
 import "./libraries/SafeDecimalMath.sol";
 
-contract SupplySchedule is Ownable {
+import "./interfaces/ISupplySchedule.sol";
+
+contract SupplySchedule is Ownable, ISupplySchedule {
     using Math for uint256;
     using SafeMath for uint256;
     using SafeDecimalMath for uint256;
@@ -21,7 +23,7 @@ contract SupplySchedule is Ownable {
     uint256 public weekCounter;
 
     // The number of DVDX rewarded to the caller of Synthetix.mint()
-    uint256 public minterReward = 200 * SafeDecimalMath.unit();
+    uint256 public override minterReward = 200 * SafeDecimalMath.unit();
 
     // The initial weekly inflationary supply is 75m / 52 until the start of the decay rate.
     // 75e6 * uint256(1e18) / 52
@@ -68,7 +70,7 @@ contract SupplySchedule is Ownable {
     /**
      * @return The amount of DVDX mintable for the inflationary supply
      */
-    function mintableSupply() external view returns (uint256) {
+    function mintableSupply() external override view returns (uint256) {
         uint256 totalAmount;
 
         if (!isMintable()) {
@@ -149,7 +151,7 @@ contract SupplySchedule is Ownable {
      * @return boolean whether the MINT_PERIOD_DURATION (7 days)
      * has passed since the lastMintEvent.
      * */
-    function isMintable() public view returns (bool) {
+    function isMintable() public override view returns (bool) {
         if (uint256(block.timestamp) - lastMintEvent > MINT_PERIOD_DURATION) {
             return true;
         }
@@ -164,7 +166,7 @@ contract SupplySchedule is Ownable {
      * and store the time of the event.
      * @param supplyMinted the amount of DVDX the total supply was inflated by.
      * */
-    function recordMintEvent(uint supplyMinted) external onlyOwner returns (bool) {
+    function recordMintEvent(uint supplyMinted) external override onlyOwner returns (bool) {
         uint numberOfWeeksIssued = weeksSinceLastIssuance();
 
         // add number of weeks minted to weekCounter
