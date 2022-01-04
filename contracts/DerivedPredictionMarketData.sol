@@ -55,11 +55,7 @@ contract DerivedPredictionMarketData {
     );
     event QuestionResolved(uint256 questionId, uint256 slotIndex);
     event Trade(
-        address collateral,
-        address indexed trader,
-        uint256 sharesAmount,
-        uint256 collateralAmount,
-        uint256 slotIndex,
+        uint256 questionId,
         uint256 long,
         uint256 short
     );

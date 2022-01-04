@@ -224,20 +224,11 @@ contract DerivedPredictionMarket is
         markets[_questionId].lpVolume += amount;
         markets[_questionId].tradeVolume += amount;
 
-        uint256 sharesAmount = _mintShares(
-            _questionId,
-            amount,
-            _slotIndex,
-            msg.sender
-        );
+        _mintShares(_questionId, amount, _slotIndex, msg.sender);
 
         uint256[2] memory prices = getAnswerPrices(_questionId);
         emit Trade(
-            questions[_questionId].collateral,
-            msg.sender,
-            sharesAmount,
-            amount,
-            _slotIndex,
+            _questionId,
             prices[0],
             prices[1]
         );
@@ -261,18 +252,11 @@ contract DerivedPredictionMarket is
         require(_amount > 0, "Invalid sell amount");
         require(_slotIndex < 2, "Invalid answer");
 
-        uint256 collateralAmount = _burnShares(
-            _questionId,
-            _amount,
-            _slotIndex
-        );
+        _burnShares(_questionId, _amount, _slotIndex);
+
         uint256[2] memory prices = getAnswerPrices(_questionId);
         emit Trade(
-            questions[_questionId].collateral,
-            msg.sender,
-            _amount,
-            collateralAmount,
-            _slotIndex,
+            _questionId,
             prices[0],
             prices[1]
         );
