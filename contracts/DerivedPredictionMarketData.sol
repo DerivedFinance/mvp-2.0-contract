@@ -51,7 +51,9 @@ contract DerivedPredictionMarketData {
         uint256 questionId,
         uint256 resolveTime,
         uint256 funding,
-        uint256 fee
+        uint256 fee,
+        uint256 long,
+        uint256 short
     );
     event QuestionResolved(uint256 questionId, uint256 slotIndex);
     event Trade(

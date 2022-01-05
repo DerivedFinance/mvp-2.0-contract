@@ -127,6 +127,8 @@ contract DerivedPredictionMarket is
 
         _mintBatch(address(this), ids, amounts, "");
 
+        uint256[2] memory prices = getAnswerPrices(questionId);
+
         emit QuestionCreated(
             question.collateral,
             question.maker,
@@ -135,7 +137,9 @@ contract DerivedPredictionMarket is
             question.questionId,
             question.resolveTime,
             question.funding,
-            question.fee
+            question.fee,
+            prices[0],
+            prices[1]
         );
     }
 
@@ -270,7 +274,7 @@ contract DerivedPredictionMarket is
     ) private returns (uint256 amount) {
         uint256[2] memory prices = getAnswerPrices(_questionId);
         uint256 answerId = generateAnswerId(_questionId, _slotIndex);
-        amount = _collateralAmount / prices[_slotIndex];
+        amount = _collateralAmount / prices[_slotIndex] * 1e18;
 
         _mint(_spender, answerId, amount, "");
 
