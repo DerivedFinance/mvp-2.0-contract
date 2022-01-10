@@ -27,7 +27,9 @@ describe("DerivedPredictionMarket", () => {
     const DerivedPredictionMarket = await ethers.getContractFactory(
       "DerivedPredictionMarket"
     );
-    derviedPredictionMarket = await DerivedPredictionMarket.deploy();
+    derviedPredictionMarket = await DerivedPredictionMarket.deploy(
+      derivedToken.address
+    );
     await derviedPredictionMarket.deployed();
 
     await derivedToken.transfer(bobAddr, 100);

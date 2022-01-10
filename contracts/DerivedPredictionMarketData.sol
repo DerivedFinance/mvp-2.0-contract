@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 contract DerivedPredictionMarketData {
     struct Question {
-        address collateral;
+        address token;
         address maker;
         address resolver;
         string title;
@@ -13,6 +13,7 @@ contract DerivedPredictionMarketData {
         uint256 funding;
         uint256 fee;
         uint256 slotIndex;
+        uint256 strikePrice;
         bool resolved;
     }
 
@@ -44,22 +45,21 @@ contract DerivedPredictionMarketData {
 
     // Events
     event QuestionCreated(
-        address indexed collateral,
+        address indexed token,
         address indexed maker,
         address indexed resolver,
         string title,
         uint256 questionId,
         uint256 resolveTime,
         uint256 funding,
-        uint256 fee
+        uint256 fee,
+        uint256 strikePrice,
+        uint256 long,
+        uint256 short
     );
     event QuestionResolved(uint256 questionId, uint256 slotIndex);
     event Trade(
-        address collateral,
-        address indexed trader,
-        uint256 sharesAmount,
-        uint256 collateralAmount,
-        uint256 slotIndex,
+        uint256 questionId,
         uint256 long,
         uint256 short
     );

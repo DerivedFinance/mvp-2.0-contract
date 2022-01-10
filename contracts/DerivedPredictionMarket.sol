@@ -17,13 +17,17 @@ contract DerivedPredictionMarket is
     ERC1155Holder,
     Ownable
 {
-    constructor() ERC1155("https://derived.fi/images/logo.png") {
+    IERC20 public collateral;
+
+    constructor(IERC20 _collateral) ERC1155("https://derived.fi/images/logo.png") {
+        collateral = _collateral;
+
         setApprovalForAll(address(this), true);
     }
 
     modifier _checkQuestion(uint256 _questionId) {
         require(
-            questions[_questionId].collateral != address(0),
+            questions[_questionId].token != address(0),
             "Invalid questionId"
         );
         _;
@@ -74,7 +78,7 @@ contract DerivedPredictionMarket is
 
     /**
      * @notice Create question
-     * @param _collateral collateral token address
+     * @param _token token address
      * @param _resolver question resolver
      * @param _title question title
      * @param _resolveTime question resolve time
@@ -82,26 +86,28 @@ contract DerivedPredictionMarket is
      * @param _fee trade fee
      */
     function createQuestion(
-        address _collateral,
+        address _token,
         address _resolver,
         string memory _title,
         uint256 _resolveTime,
         uint256 _funding,
-        uint256 _fee
-    ) external returns (uint256 questionId) {
-        require(_collateral != address(0), "Invalid address");
+        uint256 _fee,
+        uint256 _strikePrice
+    ) external onlyOwner returns (uint256 questionId) {
+        require(_token != address(0), "Invalid address");
         require(_funding > 0, "Invalid initial funding amount");
+        require(_strikePrice > 0, "Invalid strike price");
         require(_fee < 100, "Invalid trade fee rate");
         require(_resolveTime > block.timestamp, "Invalid resolve time");
 
         // Transfer collateral token
-        IERC20(_collateral).transferFrom(msg.sender, address(this), _funding);
+        collateral.transferFrom(msg.sender, address(this), _funding);
 
-        questionId = generateQuestionId(_collateral, msg.sender, _title);
+        questionId = generateQuestionId(_token, msg.sender, _title);
 
         // Create question
         Question storage question = questions[questionId];
-        question.collateral = _collateral;
+        question.token = _token;
         question.maker = msg.sender;
         question.resolver = _resolver;
         question.title = _title;
@@ -109,6 +115,7 @@ contract DerivedPredictionMarket is
         question.resolveTime = _resolveTime;
         question.funding = _funding;
         question.fee = _fee;
+        question.strikePrice = _strikePrice;
 
         // Create market data
         MarketData storage market = markets[questionId];
@@ -127,23 +134,28 @@ contract DerivedPredictionMarket is
 
         _mintBatch(address(this), ids, amounts, "");
 
+        uint256[2] memory prices = getAnswerPrices(questionId);
+
         emit QuestionCreated(
-            question.collateral,
+            question.token,
             question.maker,
             question.resolver,
             question.title,
             question.questionId,
             question.resolveTime,
             question.funding,
-            question.fee
+            question.fee,
+            question.strikePrice,
+            prices[0],
+            prices[1]
         );
     }
 
     function resolveQuestion(uint256 _questionId, uint256 _slotIndex)
         external
+        onlyOwner
         _checkQuestion(_questionId)
         _checkUnResolvedQuestion(_questionId)
-        _onlyResolver(_questionId)
         _canResolve(_questionId)
     {
         require(_slotIndex < 2, "Invalid answer");
@@ -175,7 +187,7 @@ contract DerivedPredictionMarket is
         _burn(msg.sender, answerId, balance);
 
         uint256 amount = markets[_questionId].lpVolume * balance / total;
-        IERC20(questions[_questionId].collateral).transfer(msg.sender, amount);
+        collateral.transfer(msg.sender, amount);
 
         markets[_questionId].lpVolume -= amount;
         if (slotIndex == 0) {
@@ -190,7 +202,7 @@ contract DerivedPredictionMarket is
         _onlyQuestionMaker(_questionId)
         _checkAvailableTradeFee(_questionId)
     {
-        IERC20(questions[_questionId].collateral).transfer(
+        collateral.transfer(
             msg.sender,
             tradeFees[_questionId]
         );
@@ -216,7 +228,7 @@ contract DerivedPredictionMarket is
         require(_slotIndex < 2, "Invalid answer");
 
         uint256 amount = _addTradeFee(_questionId, _amount);
-        IERC20(questions[_questionId].collateral).transferFrom(
+        collateral.transferFrom(
             msg.sender,
             address(this),
             amount
@@ -224,20 +236,11 @@ contract DerivedPredictionMarket is
         markets[_questionId].lpVolume += amount;
         markets[_questionId].tradeVolume += amount;
 
-        uint256 sharesAmount = _mintShares(
-            _questionId,
-            amount,
-            _slotIndex,
-            msg.sender
-        );
+        _mintShares(_questionId, amount, _slotIndex, msg.sender);
 
         uint256[2] memory prices = getAnswerPrices(_questionId);
         emit Trade(
-            questions[_questionId].collateral,
-            msg.sender,
-            sharesAmount,
-            amount,
-            _slotIndex,
+            _questionId,
             prices[0],
             prices[1]
         );
@@ -261,18 +264,11 @@ contract DerivedPredictionMarket is
         require(_amount > 0, "Invalid sell amount");
         require(_slotIndex < 2, "Invalid answer");
 
-        uint256 collateralAmount = _burnShares(
-            _questionId,
-            _amount,
-            _slotIndex
-        );
+        _burnShares(_questionId, _amount, _slotIndex);
+
         uint256[2] memory prices = getAnswerPrices(_questionId);
         emit Trade(
-            questions[_questionId].collateral,
-            msg.sender,
-            _amount,
-            collateralAmount,
-            _slotIndex,
+            _questionId,
             prices[0],
             prices[1]
         );
@@ -286,7 +282,7 @@ contract DerivedPredictionMarket is
     ) private returns (uint256 amount) {
         uint256[2] memory prices = getAnswerPrices(_questionId);
         uint256 answerId = generateAnswerId(_questionId, _slotIndex);
-        amount = _collateralAmount / prices[_slotIndex];
+        amount = _collateralAmount / prices[_slotIndex] * 1e18;
 
         _mint(_spender, answerId, amount, "");
 
@@ -312,7 +308,7 @@ contract DerivedPredictionMarket is
 
         markets[_questionId].lpVolume -= collateralAmount;
         markets[_questionId].tradeVolume += collateralAmount;
-        IERC20(questions[_questionId].collateral).transfer(
+        collateral.transfer(
             msg.sender,
             collateralAmount
         );

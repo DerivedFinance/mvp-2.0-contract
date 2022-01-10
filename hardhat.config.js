@@ -12,7 +12,7 @@ const accounts =
 
 module.exports = {
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
+    apiKey: process.env.BSCSCAN_API_KEY || "ETHERSCAN_API_KEY",
   },
   solidity: {
     version: "0.8.4",
