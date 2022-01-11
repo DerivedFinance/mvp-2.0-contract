@@ -7,7 +7,7 @@ contract DerivedPredictionMarketData {
         address token;
         address maker;
         address resolver;
-        string title;
+        string meta;
         uint256 questionId;
         uint256 resolveTime;
         uint256 funding;
@@ -48,7 +48,7 @@ contract DerivedPredictionMarketData {
         address indexed token,
         address indexed maker,
         address indexed resolver,
-        string title,
+        string meta,
         uint256 questionId,
         uint256 resolveTime,
         uint256 funding,
@@ -68,7 +68,7 @@ contract DerivedPredictionMarketData {
     function generateQuestionId(
         address _collateral,
         address _maker,
-        string memory _title
+        string memory _meta
     ) public view returns (uint256) {
         return
             uint256(
@@ -76,7 +76,7 @@ contract DerivedPredictionMarketData {
                     abi.encodePacked(
                         _collateral,
                         _maker,
-                        _title,
+                        _meta,
                         block.timestamp
                     )
                 )
