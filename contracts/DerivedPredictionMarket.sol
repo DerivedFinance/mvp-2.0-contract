@@ -80,7 +80,7 @@ contract DerivedPredictionMarket is
      * @notice Create question
      * @param _token token address
      * @param _resolver question resolver
-     * @param _title question title
+     * @param _meta question meta data uri
      * @param _resolveTime question resolve time
      * @param _funding initial funding
      * @param _fee trade fee
@@ -88,7 +88,7 @@ contract DerivedPredictionMarket is
     function createQuestion(
         address _token,
         address _resolver,
-        string memory _title,
+        string memory _meta,
         uint256 _resolveTime,
         uint256 _funding,
         uint256 _fee,
@@ -103,14 +103,14 @@ contract DerivedPredictionMarket is
         // Transfer collateral token
         collateral.transferFrom(msg.sender, address(this), _funding);
 
-        questionId = generateQuestionId(_token, msg.sender, _title);
+        questionId = generateQuestionId(_token, msg.sender, _meta);
 
         // Create question
         Question storage question = questions[questionId];
         question.token = _token;
         question.maker = msg.sender;
         question.resolver = _resolver;
-        question.title = _title;
+        question.meta = _meta;
         question.questionId = questionId;
         question.resolveTime = _resolveTime;
         question.funding = _funding;
@@ -140,7 +140,7 @@ contract DerivedPredictionMarket is
             question.token,
             question.maker,
             question.resolver,
-            question.title,
+            question.meta,
             question.questionId,
             question.resolveTime,
             question.funding,

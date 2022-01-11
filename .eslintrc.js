@@ -19,4 +19,13 @@ module.exports = {
       globals: { task: true },
     },
   ],
+  plugins: ["prettier"],
+  rules: {
+    "prettier/prettier": [
+      "error",
+      {
+        endOfLine: "auto",
+      },
+    ],
+  },
 };
