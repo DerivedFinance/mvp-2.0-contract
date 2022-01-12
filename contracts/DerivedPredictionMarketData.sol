@@ -45,7 +45,6 @@ contract DerivedPredictionMarketData {
 
     // Events
     event QuestionCreated(
-        address indexed token,
         address indexed maker,
         address indexed resolver,
         string meta,
@@ -53,7 +52,6 @@ contract DerivedPredictionMarketData {
         uint256 resolveTime,
         uint256 funding,
         uint256 fee,
-        uint256 strikePrice,
         uint256 long,
         uint256 short
     );
@@ -66,18 +64,15 @@ contract DerivedPredictionMarketData {
 
     // Generate Hashed QuestionID
     function generateQuestionId(
-        address _collateral,
         address _maker,
         string memory _meta
-    ) public view returns (uint256) {
+    ) public pure returns (uint256) {
         return
             uint256(
                 keccak256(
                     abi.encodePacked(
-                        _collateral,
                         _maker,
-                        _meta,
-                        block.timestamp
+                        _meta
                     )
                 )
             );
