@@ -7,7 +7,7 @@ async function main() {
     "DerivedPredictionMarket"
   );
   const derivedPredictionMarket = await DerivedPredictionMarket.deploy(
-    "0xff8422C90C165e5a8492E2DB06b4240D22D5AA3F"
+    "0xe92C13C39c9c2F1589C1d9dedAad06057BF3C593"
   );
 
   await derivedPredictionMarket.deployed();
@@ -20,7 +20,7 @@ async function main() {
   //   constructorArguments: [],
   // });
   console.log(
-    `npx hardhat verify --contract contracts/DerivedPredictionMarket.sol:DerivedPredictionMarket ${derivedPredictionMarket.address} 0xff8422C90C165e5a8492E2DB06b4240D22D5AA3F --network rinkeby`
+    `npx hardhat verify --contract contracts/DerivedPredictionMarket.sol:DerivedPredictionMarket ${derivedPredictionMarket.address} 0xe92C13C39c9c2F1589C1d9dedAad06057BF3C593 --network rinkeby`
   );
 }
 
