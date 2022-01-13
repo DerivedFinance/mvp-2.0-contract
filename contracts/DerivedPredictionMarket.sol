@@ -27,7 +27,7 @@ contract DerivedPredictionMarket is
 
     modifier _checkQuestion(uint256 _questionId) {
         require(
-            questions[_questionId].token != address(0),
+            questions[_questionId].maker != address(0),
             "Invalid questionId"
         );
         _;
@@ -114,7 +114,7 @@ contract DerivedPredictionMarket is
         MarketData storage market = markets[questionId];
         market.long = _funding;
         market.short = _funding;
-        market.lpVolume = 0;
+        market.lpVolume = _funding;
 
         totalQuestions ++;
 
@@ -230,10 +230,14 @@ contract DerivedPredictionMarket is
         _mintShares(_questionId, amount, _slotIndex, msg.sender);
 
         uint256[2] memory prices = getAnswerPrices(_questionId);
+
         emit Trade(
+            "BUY",
             _questionId,
             prices[0],
-            prices[1]
+            prices[1],
+            markets[_questionId].lpVolume,
+            markets[_questionId].tradeVolume
         );
     }
 
@@ -258,10 +262,14 @@ contract DerivedPredictionMarket is
         _burnShares(_questionId, _amount, _slotIndex);
 
         uint256[2] memory prices = getAnswerPrices(_questionId);
+
         emit Trade(
+            "SELL",
             _questionId,
             prices[0],
-            prices[1]
+            prices[1],
+            markets[_questionId].lpVolume,
+            markets[_questionId].tradeVolume
         );
     }
 
