@@ -232,6 +232,7 @@ contract DerivedPredictionMarket is
         uint256[2] memory prices = getAnswerPrices(_questionId);
 
         emit Trade(
+            "Buy",
             _questionId,
             prices[0],
             prices[1],
@@ -263,6 +264,7 @@ contract DerivedPredictionMarket is
         uint256[2] memory prices = getAnswerPrices(_questionId);
 
         emit Trade(
+            "Sell",
             _questionId,
             prices[0],
             prices[1],
