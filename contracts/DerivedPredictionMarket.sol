@@ -234,6 +234,7 @@ contract DerivedPredictionMarket is
         emit Trade(
             "BUY",
             _questionId,
+            _slotIndex,
             prices[0],
             prices[1],
             markets[_questionId].lpVolume,
@@ -267,6 +268,7 @@ contract DerivedPredictionMarket is
         emit Trade(
             "SELL",
             _questionId,
+            _slotIndex,
             prices[0],
             prices[1],
             markets[_questionId].lpVolume,
