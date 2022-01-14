@@ -62,7 +62,8 @@ contract DerivedPredictionMarketData {
         uint256 long,
         uint256 short,
         uint256 lpVolume,
-        uint256 tradeVolume
+        uint256 tradeVolume,
+        uint256 amount
     );
 
     // Generate Hashed QuestionID

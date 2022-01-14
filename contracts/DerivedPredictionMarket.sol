@@ -237,7 +237,8 @@ contract DerivedPredictionMarket is
             prices[0],
             prices[1],
             markets[_questionId].lpVolume,
-            markets[_questionId].tradeVolume
+            markets[_questionId].tradeVolume,
+            amount
         );
     }
 
@@ -259,7 +260,7 @@ contract DerivedPredictionMarket is
         require(_amount > 0, "Invalid sell amount");
         require(_slotIndex < 2, "Invalid answer");
 
-        _burnShares(_questionId, _amount, _slotIndex);
+        uint256 amount = _burnShares(_questionId, _amount, _slotIndex);
 
         uint256[2] memory prices = getAnswerPrices(_questionId);
 
@@ -269,7 +270,8 @@ contract DerivedPredictionMarket is
             prices[0],
             prices[1],
             markets[_questionId].lpVolume,
-            markets[_questionId].tradeVolume
+            markets[_questionId].tradeVolume,
+            amount
         );
     }
 
