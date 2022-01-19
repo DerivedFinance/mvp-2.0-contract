@@ -7,6 +7,7 @@ contract DerivedPredictionMarketData {
         address token;
         address maker;
         address resolver;
+        string title;
         string meta;
         uint256 questionId;
         uint256 resolveTime;
@@ -47,6 +48,7 @@ contract DerivedPredictionMarketData {
     event QuestionCreated(
         address indexed maker,
         address indexed resolver,
+        string title,
         string meta,
         uint256 questionId,
         uint256 resolveTime,

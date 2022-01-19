@@ -86,6 +86,7 @@ contract DerivedPredictionMarket is
      */
     function createQuestion(
         address _resolver,
+        string memory _title,
         string memory _meta,
         uint256 _resolveTime,
         uint256 _funding,
@@ -104,6 +105,7 @@ contract DerivedPredictionMarket is
         Question storage question = questions[questionId];
         question.maker = msg.sender;
         question.resolver = _resolver;
+        question.title = _title;
         question.meta = _meta;
         question.questionId = questionId;
         question.resolveTime = _resolveTime;
@@ -132,6 +134,7 @@ contract DerivedPredictionMarket is
         emit QuestionCreated(
             question.maker,
             question.resolver,
+            question.title,
             question.meta,
             question.questionId,
             question.resolveTime,
