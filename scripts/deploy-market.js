@@ -20,7 +20,7 @@ async function main() {
   //   constructorArguments: [],
   // });
   console.log(
-    `npx hardhat verify --contract contracts/DerivedPredictionMarket.sol:DerivedPredictionMarket ${derivedPredictionMarket.address} 0xe92C13C39c9c2F1589C1d9dedAad06057BF3C593 --network rinkeby`
+    `npx hardhat verify --contract contracts/DerivedPredictionMarket.sol:DerivedPredictionMarket ${derivedPredictionMarket.address} 0xe92C13C39c9c2F1589C1d9dedAad06057BF3C593 --network bsctest`
   );
 }
 
