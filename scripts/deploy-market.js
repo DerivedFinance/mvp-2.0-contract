@@ -7,7 +7,7 @@ async function main() {
     "DerivedPredictionMarket"
   );
   const derivedPredictionMarket = await DerivedPredictionMarket.deploy(
-    "0xe92C13C39c9c2F1589C1d9dedAad06057BF3C593"
+    "0xE41B000268eDBFc239988237D7Cc6B995aD3e1Dc"
   );
 
   await derivedPredictionMarket.deployed();
