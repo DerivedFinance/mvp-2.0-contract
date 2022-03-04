@@ -358,8 +358,4 @@ contract DerivedPredictionMarket is
             (markets[_questionId].short * 1e18) / getVolume(_questionId) // SHORT
         ];
     }
-
-    function setCollateral(IERC20 _collateral) external onlyOwner {
-        collateral = _collateral;
-    }
 }
