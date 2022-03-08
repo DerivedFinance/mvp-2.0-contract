@@ -88,6 +88,7 @@ contract DerivedPredictionMarket is
         address _resolver,
         string memory _title,
         string memory _meta,
+        string memory _category,
         uint256 _resolveTime,
         uint256 _funding,
         uint256 _fee
@@ -107,6 +108,7 @@ contract DerivedPredictionMarket is
         question.resolver = _resolver;
         question.title = _title;
         question.meta = _meta;
+        question.category = _category;
         question.questionId = questionId;
         question.resolveTime = _resolveTime;
         question.funding = _funding;
@@ -136,6 +138,7 @@ contract DerivedPredictionMarket is
             question.resolver,
             question.title,
             question.meta,
+            question.category,
             question.questionId,
             question.resolveTime,
             question.funding,

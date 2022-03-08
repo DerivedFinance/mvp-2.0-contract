@@ -9,6 +9,7 @@ contract DerivedPredictionMarketData {
         address resolver;
         string title;
         string meta;
+        string category;
         uint256 questionId;
         uint256 resolveTime;
         uint256 funding;
@@ -50,6 +51,7 @@ contract DerivedPredictionMarketData {
         address indexed resolver,
         string title,
         string meta,
+        string category,
         uint256 questionId,
         uint256 resolveTime,
         uint256 funding,
