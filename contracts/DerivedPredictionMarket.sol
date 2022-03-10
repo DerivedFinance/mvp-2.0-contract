@@ -161,11 +161,14 @@ contract DerivedPredictionMarket is
         question.resolved = true;
         question.slotIndex = _slotIndex;
 
+        _redeemRewards(_questionId);
+        _redeemTradeFee(_questionId);
+
         emit QuestionResolved(_questionId, _slotIndex);
     }
 
-    function redeemRewards(uint256 _questionId)
-        external
+    function _redeemRewards(uint256 _questionId)
+        private
         _checkQuestion(_questionId)
         _checkResolvedQuestion(_questionId)
     {
@@ -194,8 +197,8 @@ contract DerivedPredictionMarket is
         }
     }
 
-    function redeemTradeFee(uint256 _questionId)
-        external
+    function _redeemTradeFee(uint256 _questionId)
+        private
         _onlyQuestionMaker(_questionId)
         _checkAvailableTradeFee(_questionId)
     {
@@ -291,7 +294,7 @@ contract DerivedPredictionMarket is
     ) private returns (uint256 amount) {
         uint256[2] memory prices = getAnswerPrices(_questionId);
         uint256 answerId = generateAnswerId(_questionId, _slotIndex);
-        amount = _collateralAmount / prices[_slotIndex] * 1e18;
+        amount = _collateralAmount * 1e18 / prices[_slotIndex];
 
         _mint(_spender, answerId, amount, "");
 
