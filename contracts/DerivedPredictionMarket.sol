@@ -19,7 +19,9 @@ contract DerivedPredictionMarket is
 {
     IERC20 public collateral;
 
-    constructor(IERC20 _collateral) ERC1155("https://derived.fi/images/logo.png") {
+    constructor(IERC20 _collateral)
+        ERC1155("https://derived.fi/images/logo.png")
+    {
         collateral = _collateral;
 
         setApprovalForAll(address(this), true);
@@ -49,6 +51,16 @@ contract DerivedPredictionMarket is
         _;
     }
 
+    modifier _onlyPaused(uint256 _questionId) {
+        require(marketStatus[_questionId], "Question is not paused");
+        _;
+    }
+
+    modifier _onlyUnpaused(uint256 _questionId) {
+        require(!marketStatus[_questionId], "Question is paused");
+        _;
+    }
+
     modifier _checkAvailableTradeFee(uint256 _questionId) {
         require(tradeFees[_questionId] > 0, "Not available trade fee");
         _;
@@ -72,8 +84,16 @@ contract DerivedPredictionMarket is
     /**
      * @dev See {IERC1155-supportsInterface}.
      */
-    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC1155, ERC1155Receiver) returns (bool) {
-        return interfaceId == type(IERC1155Receiver).interfaceId || super.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(ERC1155, ERC1155Receiver)
+        returns (bool)
+    {
+        return
+            interfaceId == type(IERC1155Receiver).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     /**
@@ -116,11 +136,11 @@ contract DerivedPredictionMarket is
 
         // Create market data
         MarketData storage market = markets[questionId];
-        market.long = _funding;
-        market.short = _funding;
+        market.long = _funding / 2;
+        market.short = _funding / 2;
         market.lpVolume = _funding;
 
-        totalQuestions ++;
+        totalQuestions++;
 
         uint256[] memory ids = new uint256[](2);
         uint256[] memory amounts = new uint256[](2);
@@ -146,6 +166,28 @@ contract DerivedPredictionMarket is
             prices[0],
             prices[1]
         );
+    }
+
+    function pauseTrade(uint256 _questionId)
+        external
+        onlyOwner
+        _checkQuestion(_questionId)
+        _checkUnResolvedQuestion(_questionId)
+        _onlyUnpaused(_questionId)
+    {
+        marketStatus[_questionId] = true;
+        emit TradePaused(_questionId);
+    }
+
+    function unpauseTrade(uint256 _questionId)
+        external
+        onlyOwner
+        _checkQuestion(_questionId)
+        _checkUnResolvedQuestion(_questionId)
+        _onlyPaused(_questionId)
+    {
+        marketStatus[_questionId] = false;
+        emit TradeUnpaused(_questionId);
     }
 
     function resolveQuestion(uint256 _questionId, uint256 _slotIndex)
@@ -186,7 +228,7 @@ contract DerivedPredictionMarket is
         require(balance > 0, "Not available to redeem");
         _burn(msg.sender, answerId, balance);
 
-        uint256 amount = markets[_questionId].lpVolume * balance / total;
+        uint256 amount = (markets[_questionId].lpVolume * balance) / total;
         collateral.transfer(msg.sender, amount);
 
         markets[_questionId].lpVolume -= amount;
@@ -202,10 +244,7 @@ contract DerivedPredictionMarket is
         _onlyQuestionMaker(_questionId)
         _checkAvailableTradeFee(_questionId)
     {
-        collateral.transfer(
-            msg.sender,
-            tradeFees[_questionId]
-        );
+        collateral.transfer(msg.sender, tradeFees[_questionId]);
         tradeFees[_questionId] = 0;
     }
 
@@ -223,16 +262,13 @@ contract DerivedPredictionMarket is
         external
         _checkQuestion(_questionId)
         _checkUnResolvedQuestion(_questionId)
+        _onlyUnpaused(_questionId)
     {
         require(_amount > 0, "Invalid buy amount");
         require(_slotIndex < 2, "Invalid answer");
 
         uint256 amount = _addTradeFee(_questionId, _amount);
-        collateral.transferFrom(
-            msg.sender,
-            address(this),
-            amount
-        );
+        collateral.transferFrom(msg.sender, address(this), amount);
         markets[_questionId].lpVolume += amount;
         markets[_questionId].tradeVolume += amount;
 
@@ -266,12 +302,12 @@ contract DerivedPredictionMarket is
         external
         _checkQuestion(_questionId)
         _checkUnResolvedQuestion(_questionId)
+        _onlyUnpaused(_questionId)
     {
         require(_amount > 0, "Invalid sell amount");
         require(_slotIndex < 2, "Invalid answer");
 
         uint256 amount = _burnShares(_questionId, _amount, _slotIndex);
-
         uint256[2] memory prices = getAnswerPrices(_questionId);
 
         emit Trade(
@@ -294,7 +330,7 @@ contract DerivedPredictionMarket is
     ) private returns (uint256 amount) {
         uint256[2] memory prices = getAnswerPrices(_questionId);
         uint256 answerId = generateAnswerId(_questionId, _slotIndex);
-        amount = _collateralAmount * 1e18 / prices[_slotIndex];
+        amount = (_collateralAmount * 1e18) / prices[_slotIndex];
 
         _mint(_spender, answerId, amount, "");
 
@@ -320,10 +356,7 @@ contract DerivedPredictionMarket is
 
         markets[_questionId].lpVolume -= collateralAmount;
         markets[_questionId].tradeVolume += collateralAmount;
-        collateral.transfer(
-            msg.sender,
-            collateralAmount
-        );
+        collateral.transfer(msg.sender, collateralAmount);
     }
 
     function _addTradeFee(uint256 _questionId, uint256 _amount)
@@ -341,7 +374,7 @@ contract DerivedPredictionMarket is
         _checkQuestion(_questionId)
         returns (uint256)
     {
-        return markets[_questionId].long + markets[_questionId].short;
+        return markets[_questionId].lpVolume;
     }
 
     function getQuestionStatus(uint256 _questionId)

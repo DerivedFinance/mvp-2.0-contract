@@ -2,7 +2,8 @@ require("dotenv").config();
 const hre = require("hardhat");
 
 async function main() {
-  const usdx = "0x64544969ed7EBf5f083679233325356EbE738930";
+  // const usdx = "0x64544969ed7EBf5f083679233325356EbE738930";
+  const usdx = "0x4a5F200B65DC4da50c7Ccf81b7bcF34c33BaF632";
   // Deploy SharkNFT contract
   const DerivedPredictionMarket = await hre.ethers.getContractFactory(
     "DerivedPredictionMarket"

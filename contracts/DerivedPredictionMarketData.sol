@@ -7,6 +7,7 @@ contract DerivedPredictionMarketData {
         address token;
         address maker;
         address resolver;
+        bool resolved;
         string title;
         string meta;
         string category;
@@ -16,7 +17,6 @@ contract DerivedPredictionMarketData {
         uint256 fee;
         uint256 slotIndex;
         uint256 strikePrice;
-        bool resolved;
     }
 
     struct MarketData {
@@ -45,6 +45,8 @@ contract DerivedPredictionMarketData {
      */
     mapping(uint256 => MarketData) public markets;
 
+    mapping (uint256 => bool) public marketStatus;
+
     // Events
     event QuestionCreated(
         address indexed maker,
@@ -70,6 +72,8 @@ contract DerivedPredictionMarketData {
         uint256 tradeVolume,
         uint256 amount
     );
+    event TradePaused(uint256 questionId);
+    event TradeUnpaused(uint256 questionId);
 
     // Generate Hashed QuestionID
     function generateQuestionId(
