@@ -2,12 +2,11 @@ pragma solidity ^0.8;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import {CTHelpers} from "./libraries/CTHelpers.sol";
 
-contract ConditionalTokens is ERC1155, Ownable {
+contract ConditionalTokens is ERC1155 {
     using SafeMath for uint256;
 
     /// @dev Emitted upon the successful preparation of a condition.
@@ -72,7 +71,7 @@ contract ConditionalTokens is ERC1155, Ownable {
         address oracle,
         bytes32 questionId,
         uint256 outcomeSlotCount
-    ) external onlyOwner {
+    ) external {
         // Limit of 256 because we use a partition array that is a number of 256 bits.
         require(outcomeSlotCount <= 256, "too many outcome slots");
         require(
