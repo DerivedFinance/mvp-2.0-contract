@@ -136,8 +136,8 @@ contract DerivedPredictionMarket is
 
         // Create market data
         MarketData storage market = markets[questionId];
-        market.long = _funding / 2;
-        market.short = _funding / 2;
+        market.long = _funding;
+        market.short = _funding;
         market.lpVolume = _funding;
 
         totalQuestions++;
@@ -374,7 +374,7 @@ contract DerivedPredictionMarket is
         _checkQuestion(_questionId)
         returns (uint256)
     {
-        return markets[_questionId].lpVolume;
+        return markets[_questionId].long + markets[_questionId].short;
     }
 
     function getQuestionStatus(uint256 _questionId)
