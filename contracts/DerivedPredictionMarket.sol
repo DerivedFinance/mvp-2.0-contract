@@ -268,7 +268,9 @@ contract DerivedPredictionMarket is
         require(_slotIndex < 2, "Invalid answer");
 
         uint256 amount = _addTradeFee(_questionId, _amount);
-        collateral.transferFrom(msg.sender, address(this), amount);
+        //svderived changes to transfer full amount (share price + trading fee) from user's wallet
+        //collateral.transferFrom(msg.sender, address(this), amount);
+        collateral.transferFrom(msg.sender, address(this), _amount);
         markets[_questionId].lpVolume += amount;
         markets[_questionId].tradeVolume += amount;
 
