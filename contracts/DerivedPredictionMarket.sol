@@ -203,14 +203,15 @@ contract DerivedPredictionMarket is
         question.resolved = true;
         question.slotIndex = _slotIndex;
 
-        _redeemRewards(_questionId);
+        // Comment out the redeem rewards and make it public - MK Derived
+        //_redeemRewards(_questionId);
         _redeemTradeFee(_questionId);
 
         emit QuestionResolved(_questionId, _slotIndex);
     }
 
     function _redeemRewards(uint256 _questionId)
-        private
+        public
         _checkQuestion(_questionId)
         _checkResolvedQuestion(_questionId)
     {
@@ -355,6 +356,13 @@ contract DerivedPredictionMarket is
         uint256[2] memory prices = getAnswerPrices(_questionId);
         collateralAmount = (_amount * prices[_slotIndex]) / 1e18;
         collateralAmount = _addTradeFee(_questionId, collateralAmount);
+        
+         // Reduce the long / short side after sell
+        if (_slotIndex == 0) {
+            markets[_questionId].long -= collateralAmount;
+        } else {
+            markets[_questionId].short -= collateralAmount;
+        }
 
         markets[_questionId].lpVolume -= collateralAmount;
         markets[_questionId].tradeVolume += collateralAmount;
