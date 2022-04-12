@@ -210,7 +210,7 @@ contract DerivedPredictionMarket is
         emit QuestionResolved(_questionId, _slotIndex);
     }
 
-    function _redeemRewards(uint256 _questionId)
+    function redeemRewards(uint256 _questionId)
         public
         _checkQuestion(_questionId)
         _checkResolvedQuestion(_questionId)
