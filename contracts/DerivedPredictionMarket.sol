@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 contract DerivedPredictionMarket is
     DerivedPredictionMarketData,
@@ -17,6 +18,8 @@ contract DerivedPredictionMarket is
     ERC1155Holder,
     Ownable
 {
+    using SafeMath for uint256;
+
     IERC20 public collateral;
 
     constructor(IERC20 _collateral)
@@ -140,7 +143,7 @@ contract DerivedPredictionMarket is
         market.short = _funding;
         market.lpVolume = _funding;
 
-        totalQuestions++;
+        totalQuestions = totalQuestions.add(1);
 
         uint256[] memory ids = new uint256[](2);
         uint256[] memory amounts = new uint256[](2);
@@ -205,7 +208,7 @@ contract DerivedPredictionMarket is
 
         // Comment out the redeem rewards and make it public - MK Derived
         //_redeemRewards(_questionId);
-        _redeemTradeFee(_questionId);
+        redeemTradeFee(_questionId);
 
         emit QuestionResolved(_questionId, _slotIndex);
     }
@@ -220,28 +223,30 @@ contract DerivedPredictionMarket is
         uint256 balance = balanceOf(msg.sender, answerId);
         uint256 total;
 
+        MarketData storage market = markets[_questionId];
+
         if (slotIndex == 0) {
-            total = markets[_questionId].long;
+            total = market.long;
         } else {
-            total = markets[_questionId].short;
+            total = market.short;
         }
 
         require(balance > 0, "Not available to redeem");
         _burn(msg.sender, answerId, balance);
 
-        uint256 amount = (markets[_questionId].lpVolume * balance) / total;
+        uint256 amount = (market.lpVolume.mul(balance)).div(total);
         collateral.transfer(msg.sender, amount);
 
-        markets[_questionId].lpVolume -= amount;
+        market.lpVolume = market.lpVolume.sub(amount);
         if (slotIndex == 0) {
-            markets[_questionId].long -= balance;
+            market.long = market.long.sub(balance);
         } else {
-            markets[_questionId].short -= balance;
+            market.short = market.short.sub(balance);
         }
     }
 
-    function _redeemTradeFee(uint256 _questionId)
-        private
+    function redeemTradeFee(uint256 _questionId)
+        public
         _onlyQuestionMaker(_questionId)
         _checkAvailableTradeFee(_questionId)
     {
@@ -272,8 +277,10 @@ contract DerivedPredictionMarket is
         //svderived changes to transfer full amount (share price + trading fee) from user's wallet
         //collateral.transferFrom(msg.sender, address(this), amount);
         collateral.transferFrom(msg.sender, address(this), _amount);
-        markets[_questionId].lpVolume += amount;
-        markets[_questionId].tradeVolume += amount;
+
+        MarketData storage market = markets[_questionId];
+        market.lpVolume = market.lpVolume.add(amount);
+        market.lpVolume = market.lpVolume.add(amount);
 
         _mintShares(_questionId, amount, _slotIndex, msg.sender);
 
@@ -285,8 +292,8 @@ contract DerivedPredictionMarket is
             _slotIndex,
             prices[0],
             prices[1],
-            markets[_questionId].lpVolume,
-            markets[_questionId].tradeVolume,
+            market.lpVolume,
+            market.tradeVolume,
             amount
         );
     }
@@ -312,6 +319,7 @@ contract DerivedPredictionMarket is
 
         uint256 amount = _burnShares(_questionId, _amount, _slotIndex);
         uint256[2] memory prices = getAnswerPrices(_questionId);
+        MarketData memory market = markets[_questionId];
 
         emit Trade(
             "SELL",
@@ -319,8 +327,8 @@ contract DerivedPredictionMarket is
             _slotIndex,
             prices[0],
             prices[1],
-            markets[_questionId].lpVolume,
-            markets[_questionId].tradeVolume,
+            market.lpVolume,
+            market.tradeVolume,
             amount
         );
     }
@@ -333,14 +341,15 @@ contract DerivedPredictionMarket is
     ) private returns (uint256 amount) {
         uint256[2] memory prices = getAnswerPrices(_questionId);
         uint256 answerId = generateAnswerId(_questionId, _slotIndex);
-        amount = (_collateralAmount * 1e18) / prices[_slotIndex];
+        amount = (_collateralAmount.mul(1e18)).div(prices[_slotIndex]);
 
         _mint(_spender, answerId, amount, "");
 
+        MarketData storage market = markets[_questionId];
         if (_slotIndex == 0) {
-            markets[_questionId].long += amount;
+            market.long = market.long.add(amount);
         } else {
-            markets[_questionId].short += amount;
+            market.short = market.short.add(amount);
         }
     }
 
@@ -354,18 +363,19 @@ contract DerivedPredictionMarket is
         _burn(msg.sender, answerId, _amount);
 
         uint256[2] memory prices = getAnswerPrices(_questionId);
-        collateralAmount = (_amount * prices[_slotIndex]) / 1e18;
+        collateralAmount = (_amount.mul(prices[_slotIndex])).div(1e18);
         collateralAmount = _addTradeFee(_questionId, collateralAmount);
-        
+
+        MarketData storage market = markets[_questionId];
          // Reduce the long / short side after sell
         if (_slotIndex == 0) {
-            markets[_questionId].long -= collateralAmount;
+            market.long = market.long.sub(collateralAmount);
         } else {
-            markets[_questionId].short -= collateralAmount;
+            market.short = market.short.sub(collateralAmount);
         }
 
-        markets[_questionId].lpVolume -= collateralAmount;
-        markets[_questionId].tradeVolume += collateralAmount;
+        market.lpVolume = market.lpVolume.sub(collateralAmount);
+        market.tradeVolume = market.tradeVolume.add(collateralAmount);
         collateral.transfer(msg.sender, collateralAmount);
     }
 
@@ -373,8 +383,8 @@ contract DerivedPredictionMarket is
         private
         returns (uint256 fee)
     {
-        fee = (_amount * (100 - questions[_questionId].fee)) / 100;
-        tradeFees[_questionId] += _amount - fee;
+        fee = (_amount.mul(uint256(100).sub(questions[_questionId].fee))).div(100);
+        tradeFees[_questionId] = tradeFees[_questionId].add(_amount).sub(fee);
     }
 
     // View Functions
@@ -384,7 +394,7 @@ contract DerivedPredictionMarket is
         _checkQuestion(_questionId)
         returns (uint256)
     {
-        return markets[_questionId].long + markets[_questionId].short;
+        return markets[_questionId].long.add(markets[_questionId].short);
     }
 
     function getQuestionStatus(uint256 _questionId)
@@ -403,8 +413,8 @@ contract DerivedPredictionMarket is
         returns (uint256[2] memory)
     {
         return [
-            (markets[_questionId].long * 1e18) / getVolume(_questionId), // LONG
-            (markets[_questionId].short * 1e18) / getVolume(_questionId) // SHORT
+            (markets[_questionId].long.mul(1e18)).div(getVolume(_questionId)), // LONG
+            (markets[_questionId].short.mul(1e18)).div(getVolume(_questionId)) // SHORT
         ];
     }
 }
