@@ -138,7 +138,7 @@ contract DerivedPredictionMarket is
         question.fee = _fee;
 
         // Create market data
-        MarketData storage market = markets[questionId];
+        // MarketData storage market = markets[questionId];
         
         // Mk-Derived - Dont consider initial Liquidity for LP Volume
         //market.long = _funding;
