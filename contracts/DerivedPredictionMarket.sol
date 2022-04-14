@@ -139,9 +139,11 @@ contract DerivedPredictionMarket is
 
         // Create market data
         MarketData storage market = markets[questionId];
-        market.long = _funding;
-        market.short = _funding;
-        market.lpVolume = _funding;
+        
+        // Mk-Derived - Dont consider initial Liquidity for LP Volume
+        //market.long = _funding;
+        //market.short = _funding;
+        //market.lpVolume = _funding;
 
         totalQuestions = totalQuestions.add(1);
 
@@ -171,6 +173,7 @@ contract DerivedPredictionMarket is
         );
     }
 
+    // Invoked only by owner in case of any issues to pause the BO
     function pauseTrade(uint256 _questionId)
         external
         onlyOwner
@@ -206,13 +209,14 @@ contract DerivedPredictionMarket is
         question.resolved = true;
         question.slotIndex = _slotIndex;
 
-        // Comment out the redeem rewards and make it public - MK Derived
-        //_redeemRewards(_questionId);
+        // Redeem the trade fee from the contract. Assume atleast one trade will be done on the contract
         redeemTradeFee(_questionId);
 
+        // Emit question resolved event
         emit QuestionResolved(_questionId, _slotIndex);
     }
 
+    // Function to let the user claim the rewards
     function redeemRewards(uint256 _questionId)
         public
         _checkQuestion(_questionId)
@@ -245,11 +249,13 @@ contract DerivedPredictionMarket is
         }
     }
 
+    // Function to redeem the trade fee
     function redeemTradeFee(uint256 _questionId)
         public
         _onlyQuestionMaker(_questionId)
         _checkAvailableTradeFee(_questionId)
     {
+        // Transfer the trade fee to the admin wallet
         collateral.transfer(msg.sender, tradeFees[_questionId]);
         tradeFees[_questionId] = 0;
     }
@@ -279,7 +285,6 @@ contract DerivedPredictionMarket is
         collateral.transferFrom(msg.sender, address(this), _amount);
 
         MarketData storage market = markets[_questionId];
-        market.lpVolume = market.lpVolume.add(amount);
         market.lpVolume = market.lpVolume.add(amount);
 
         _mintShares(_questionId, amount, _slotIndex, msg.sender);
@@ -374,11 +379,13 @@ contract DerivedPredictionMarket is
             market.short = market.short.sub(collateralAmount);
         }
 
+        // Subtract the amount sold to the LP volume and add to trade volume 
         market.lpVolume = market.lpVolume.sub(collateralAmount);
         market.tradeVolume = market.tradeVolume.add(collateralAmount);
         collateral.transfer(msg.sender, collateralAmount);
     }
 
+    // Function to calculate the trade fee and return the amount
     function _addTradeFee(uint256 _questionId, uint256 _amount)
         private
         returns (uint256 fee)
@@ -397,6 +404,7 @@ contract DerivedPredictionMarket is
         return markets[_questionId].long.add(markets[_questionId].short);
     }
 
+    // Function to check if question is resolved or not - Returns boolean value 
     function getQuestionStatus(uint256 _questionId)
         public
         view
@@ -406,6 +414,7 @@ contract DerivedPredictionMarket is
         return questions[_questionId].resolved;
     }
 
+    // function to get price on each side 
     function getAnswerPrices(uint256 _questionId)
         public
         view
