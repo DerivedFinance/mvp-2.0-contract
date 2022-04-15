@@ -140,10 +140,10 @@ contract DerivedPredictionMarket is
         // Create market data
         MarketData storage market = markets[questionId];
         
-        // Mk-Derived - Dont consider initial Liquidity for LP Volume
-        //market.long = _funding;
-        //market.short = _funding;
-        //market.lpVolume = _funding;
+        // Consider initial Liquidity for LP Volume
+        market.long = _funding;
+        market.short = _funding;
+        market.lpVolume = _funding;
 
         totalQuestions = totalQuestions.add(1);
 
@@ -281,7 +281,7 @@ contract DerivedPredictionMarket is
 
         uint256 amount = _addTradeFee(_questionId, _amount);
         //svderived changes to transfer full amount (share price + trading fee) from user's wallet
-        //collateral.transferFrom(msg.sender, address(this), amount);
+        //collatebral.transferFrom(msg.sender, address(this), amount);
         collateral.transferFrom(msg.sender, address(this), _amount);
 
         MarketData storage market = markets[_questionId];
@@ -425,5 +425,28 @@ contract DerivedPredictionMarket is
             (markets[_questionId].long.mul(1e18)).div(getVolume(_questionId)), // LONG
             (markets[_questionId].short.mul(1e18)).div(getVolume(_questionId)) // SHORT
         ];
+    }
+
+    function getrewards(uint256 _questionId)
+    public view
+    returns(uint256)
+    {
+        uint256 slotIndex = questions[_questionId].slotIndex;
+        uint256 answerId = generateAnswerId(_questionId, slotIndex);
+        uint256 balance = balanceOf(msg.sender, answerId);
+        uint256 total;
+
+        MarketData storage market = markets[_questionId];
+
+        // Get total long / short volume 
+        if (slotIndex == 0) {
+            total = market.long;
+        } else {
+            total = market.short;
+        }
+
+        uint256 amount = (market.lpVolume.mul(balance)).div(total);
+        return amount; 
+
     }
 }
