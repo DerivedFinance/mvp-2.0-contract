@@ -1,5 +1,4 @@
-const { expect } = require("chai");
-const { ethers, upgrades } = require("hardhat");
+const { ethers } = require("hardhat");
 
 describe("DerivedPredictionMarket", () => {
   let alice;
@@ -18,9 +17,16 @@ describe("DerivedPredictionMarket", () => {
       [alice, bob, charlie].map((x) => x.getAddress())
     );
 
+    console.log(
+      "DEBUG-Total-Supply: ",
+      ethers.utils.parseEther("10000000000000").toString()
+    );
+
     // Create testing DerivedToken to be used in asset pool
     const DerivedToken = await ethers.getContractFactory("DerivedToken");
-    derivedToken = await DerivedToken.deploy(1000);
+    derivedToken = await DerivedToken.deploy(
+      ethers.utils.parseEther("10000000000000").toString()
+    );
     await derivedToken.deployed();
 
     // Create testing DerivedToken to be used in asset pool
@@ -32,21 +38,43 @@ describe("DerivedPredictionMarket", () => {
     );
     await derviedPredictionMarket.deployed();
 
-    await derivedToken.transfer(bobAddr, 100);
-    await derivedToken.transfer(charlieAddr, 100);
+    await derivedToken.transfer(
+      bobAddr,
+      ethers.utils.parseEther("10000").toString()
+    );
+    await derivedToken.transfer(
+      charlieAddr,
+      ethers.utils.parseEther("20000").toString()
+    );
   });
 
   it("Should create question", async () => {
-    await derivedToken.approve(derviedPredictionMarket.address, 100);
-    const tx = await derviedPredictionMarket.createQuestion(
-      derivedToken.address,
+    await derivedToken.approve(
+      derviedPredictionMarket.address,
+      ethers.utils.parseEther("10000000000000").toString()
+    );
+
+    const payload = {
       ownerAddr,
-      "BTC will dump to 40k again",
-      100,
-      0
+      title: "Test question - 1",
+      meta: "",
+      category: "crypto",
+      resolveTime: parseInt(new Date().getTime() / 1000 + 1000, 10),
+      funds: ethers.utils.parseEther("1000").toString(),
+      fee: 5,
+    };
+    console.log("DEBUG-payload", { payload });
+
+    const tx = await derviedPredictionMarket.createQuestion(
+      ownerAddr,
+      "Test question - 1",
+      "",
+      "crypto",
+      parseInt(new Date().getTime() / 1000 + 1000, 10),
+      ethers.utils.parseEther("1000").toString(),
+      5
     );
     const resp = await tx.wait();
-
     console.log("DEBUG-tx", tx);
     console.log("DEBUG-resp", resp);
   });

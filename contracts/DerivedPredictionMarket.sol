@@ -421,9 +421,14 @@ contract DerivedPredictionMarket is
         _checkQuestion(_questionId)
         returns (uint256[2] memory)
     {
+        uint256 volume = getVolume(_questionId);
+        if (volume == 0) {
+            return [uint256(0), uint256(0)];
+        }
+
         return [
-            (markets[_questionId].long.mul(1e18)).div(getVolume(_questionId)), // LONG
-            (markets[_questionId].short.mul(1e18)).div(getVolume(_questionId)) // SHORT
+            (markets[_questionId].long.mul(1e18)).div(volume), // LONG
+            (markets[_questionId].short.mul(1e18)).div(volume) // SHORT
         ];
     }
 }
