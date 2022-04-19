@@ -138,7 +138,7 @@ contract DerivedPredictionMarket is
         question.fee = _fee;
 
         // Create market data
-        // MarketData storage market = markets[questionId];
+        MarketData storage market = markets[questionId];
         
         // Consider initial Liquidity for LP Volume
         market.long = _funding;
@@ -209,7 +209,7 @@ contract DerivedPredictionMarket is
         question.resolved = true;
         question.slotIndex = _slotIndex;
 
-        // Redeem the trade fee from the contract. Assume atleast one trade will be done on the contract
+        // Redeem the trade fee from the contract. Assume at least one trade will be done on the contract
         redeemTradeFee(_questionId);
 
         // Emit question resolved event
