@@ -38,7 +38,7 @@ contract BinaryMarketData {
 
     mapping(uint256 => uint256) public tradeFees;
 
-    IERC20 public collateral;
+    IERC20 public token;
 
     event QuestionCreated(
         string title,
@@ -51,6 +51,17 @@ contract BinaryMarketData {
     );
 
     event QuestionResolved(uint256 questionId, uint8 slot);
+
+    event Trade(
+        uint256 questionId,
+        uint256 slot1,
+        uint256 slot2,
+        uint256 tokenAmount,
+        uint256 sharesAmount,
+        uint8 slot,
+        uint8 trade,
+        address trader
+    );
 }
 
 contract BinaryMarket is
@@ -66,10 +77,10 @@ contract BinaryMarket is
 
     Counters.Counter private _questionIds;
 
-    constructor(IERC20 _collateral)
+    constructor(IERC20 _token)
         ERC1155("https://derived.fi/images/logo.png")
     {
-        collateral = _collateral;
+        token = _token;
         setApprovalForAll(address(this), true);
     }
 
@@ -102,8 +113,8 @@ contract BinaryMarket is
         require(_fee > 0 && _fee < 100, "Invalid trade fee rate");
         require(_resolveTime > block.timestamp, "Invalid resolve time");
 
-        // Transfer collateral token
-        collateral.transferFrom(msg.sender, address(this), _initialLiquidity);
+        // Transfer token token
+        token.transferFrom(msg.sender, address(this), _initialLiquidity);
 
         Question memory question;
         question.meta = _meta;
@@ -146,7 +157,7 @@ contract BinaryMarket is
         uint256 fee = tradeFees[_questionId];
         require(fee > 0, "No Fee");
 
-        collateral.safeTransfer(msg.sender, fee);
+        token.safeTransfer(msg.sender, fee);
 
         Market storage market = markets[_questionId];
         uint256 reward = market.volume.sub(question.initialLiquidity);
@@ -173,7 +184,7 @@ contract BinaryMarket is
         tradeFees[_questionId] = tradeFees[_questionId].add(fee);
 
         uint256 payAmount = _amount.sub(fee);
-        collateral.safeTransferFrom(msg.sender, address(this), _amount);
+        token.safeTransferFrom(msg.sender, address(this), _amount);
 
         uint256[2] memory prices = getPrices(_questionId);
         uint256[2] memory slotIds = getSlotIds(_questionId);
@@ -188,6 +199,18 @@ contract BinaryMarket is
         } else {
             market.slot2 = market.slot2.add(sharesAmount);
         }
+
+        uint256[2] memory updatedPrices = getPrices(_questionId);
+        emit Trade(
+            _questionId,
+            updatedPrices[0],
+            updatedPrices[1],
+            _amount,
+            sharesAmount,
+            _slot,
+            uint8(0),
+            msg.sender
+        );
     }
 
     function sell(
@@ -210,20 +233,33 @@ contract BinaryMarket is
 
         Market storage market = markets[_questionId];
         uint256[2] memory prices = getPrices(_questionId);
-        uint256 collateralAmount = prices[_slot].mul(_amount);
-        uint256 fee = getFee(_questionId, collateralAmount);
+        uint256 tokenAmount = prices[_slot].mul(_amount);
+        uint256 fee = getFee(_questionId, tokenAmount);
+        uint256 payAmount = tokenAmount.sub(fee);
 
         _burn(msg.sender, slotIds[_slot], _amount);
 
         tradeFees[_questionId] = tradeFees[_questionId].add(fee);
-        collateral.safeTransfer(msg.sender, collateralAmount.sub(fee));
+        token.safeTransfer(msg.sender, payAmount);
 
-        market.volume = market.volume.sub(collateralAmount);
+        market.volume = market.volume.sub(tokenAmount);
         if (_slot == 0) {
             market.slot1 = market.slot1.sub(_amount);
         } else {
             market.slot2 = market.slot2.sub(_amount);
         }
+
+        uint256[2] memory updatedPrices = getPrices(_questionId);
+        emit Trade(
+            _questionId,
+            updatedPrices[0],
+            updatedPrices[1],
+            _amount,
+            payAmount,
+            _slot,
+            uint8(1),
+            msg.sender
+        );
     }
 
     function claim(uint256 _questionId)
@@ -240,11 +276,11 @@ contract BinaryMarket is
         require(balance > 0, "No Balance");
 
         _burn(msg.sender, slotIds[slot], balance);
-        collateral.safeTransfer(msg.sender, amount);
+        token.safeTransfer(msg.sender, amount);
     }
 
     // ------------------- GETTERS -------------------
-   
+
     function getTotalQuestions() public view returns (uint256) {
         return _questionIds.current();
     }
