@@ -1,6 +1,15 @@
 const { ethers } = require("hardhat");
 const { expect } = require("chai");
 
+const MOCK_QUESTION_1 = [
+  "Test question - 1",
+  "",
+  "crypto",
+  parseInt(new Date().getTime() / 1000 + 1000, 10),
+  ethers.utils.parseEther("1000").toString(),
+  5,
+];
+
 describe("BinaryMarket", () => {
   let alice;
   let bob;
@@ -48,6 +57,10 @@ describe("BinaryMarket", () => {
     );
   });
 
+  it("Deployment", async () => {
+    expect(await binaryMarket.owner()).to.be.equal(ownerAddr);
+  });
+
   it("Should create question", async () => {
     const approve = await derivedToken.approve(
       binaryMarket.address,
@@ -55,25 +68,14 @@ describe("BinaryMarket", () => {
     );
     await approve.wait();
 
-    const payload = [
-      "Test question - 1",
-      "",
-      "crypto",
-      parseInt(new Date().getTime() / 1000 + 1000, 10),
-      ethers.utils.parseEther("1000").toString(),
-      5,
-    ];
-
-    console.log("Payload: ", payload);
-
-    const tx = await binaryMarket.createQuestion(...payload);
+    const tx = await binaryMarket.createQuestion(...MOCK_QUESTION_1);
     await tx.wait();
 
     question0 = await binaryMarket.questions(0);
 
-    expect(question0.resolveTime).to.equal(payload[3]);
-    expect(question0.initialLiquidity).to.equal(payload[4]);
-    expect(question0.fee).to.equal(payload[5]);
+    expect(question0.resolveTime).to.equal(MOCK_QUESTION_1[3]);
+    expect(question0.initialLiquidity).to.equal(MOCK_QUESTION_1[4]);
+    expect(question0.fee).to.equal(MOCK_QUESTION_1[5]);
     expect(question0.slot).to.equal(3);
   });
 
@@ -119,5 +121,31 @@ describe("BinaryMarket", () => {
 
     expect(prices[0]).to.equal(prices0);
     expect(prices[1]).to.equal(prices1);
+  });
+
+  it("Should have correct market data", async () => {
+    expect(await binaryMarket.getMarketVolume(0)).to.equal(
+      ethers.utils
+        .parseEther("1000")
+        .add(ethers.utils.parseEther(`${parseFloat(50 * 0.95)}`))
+        .toString()
+    );
+
+    expect(await binaryMarket.getShares(0)).to.equal(
+      ethers.utils
+        .parseEther("2000")
+        .add(ethers.utils.parseEther(`${parseFloat((50 * 0.95) / 0.5)}`))
+    );
+  });
+
+  it("Should have correct trade fee", async () => {
+    expect(await binaryMarket.tradeFees(0)).to.equal(
+      ethers.utils.parseEther(`${parseFloat(50 * 0.05)}`)
+    );
+  });
+
+  it("Should revert sell", async () => {
+    const balance = await binaryMarket.balanceOf(bobAddr, 0);
+    expect(binaryMarket.sell(0, balance.toString(), 0)).to.be.reverted;
   });
 });

@@ -90,13 +90,6 @@ contract BinaryMarket is
 
     // ------------------- OWNER PUBLIC -------------------
 
-    /**
-     * @notice Create question
-     * @param _meta question meta data uri
-     * @param _resolveTime question resolve time
-     * @param _initialLiquidity initial funding
-     * @param _fee trade fee
-     */
     function createQuestion(
         string memory _title,
         string memory _meta,
@@ -167,6 +160,7 @@ contract BinaryMarket is
     }
 
     // ------------------- PUBLIC -------------------
+
     function buy(
         uint256 _questionId,
         uint256 _amount,
@@ -209,16 +203,15 @@ contract BinaryMarket is
             balanceOf(msg.sender, slotIds[_slot]) >= _amount,
             "Insufficient Amount"
         );
+        require(
+            getSharesMaxSell(_questionId, _slot) >= _amount,
+            "Insufficient liquidity"
+        );
 
         Market storage market = markets[_questionId];
-        Question memory question = questions[_questionId];
         uint256[2] memory prices = getPrices(_questionId);
         uint256 collateralAmount = prices[_slot].mul(_amount);
         uint256 fee = getFee(_questionId, collateralAmount);
-        require(
-            collateralAmount <= market.volume.sub(question.initialLiquidity),
-            "Insufficient liquidity"
-        );
 
         _burn(msg.sender, slotIds[_slot], _amount);
 
@@ -238,21 +231,20 @@ contract BinaryMarket is
         onlyQuestion(_questionId)
         onlyResolved(_questionId)
     {
-        Market memory market = markets[_questionId];
-        require(market.reward > 0, "No claimable reward");
-
         uint256 slot = questions[_questionId].slot;
         uint256[2] memory slotIds = getSlotIds(_questionId);
-        uint256 balance = balanceOf(msg.sender, slotIds[slot]);
-        
-        require(balance > 0, "No balance");
-        _burn(msg.sender, slotIds[slot], balance);
+        uint256 amount = getClaimableReward(_questionId);
+        require(amount > 0, "No Claimable Reward");
 
-        uint256 amount = balance.mul(market.reward).div(10**18);
+        uint256 balance = balanceOf(msg.sender, slotIds[slot]);
+        require(balance > 0, "No Balance");
+
+        _burn(msg.sender, slotIds[slot], balance);
         collateral.safeTransfer(msg.sender, amount);
     }
 
     // ------------------- GETTERS -------------------
+   
     function getTotalQuestions() public view returns (uint256) {
         return _questionIds.current();
     }
@@ -296,7 +288,46 @@ contract BinaryMarket is
         return _amount.mul(question.fee).div(100);
     }
 
+    function getClaimableReward(uint256 _questionId)
+        public
+        view
+        returns (uint256)
+    {
+        Market memory market = markets[_questionId];
+        uint256 slot = questions[_questionId].slot;
+        uint256[2] memory slotIds = getSlotIds(_questionId);
+        uint256 balance = balanceOf(msg.sender, slotIds[slot]);
+        uint256 amount = balance.mul(market.reward).div(10**18);
+        return amount;
+    }
+
+    function getMarketVolume(uint256 _questionId)
+        public
+        view
+        returns (uint256)
+    {
+        return markets[_questionId].volume;
+    }
+
+    function getTradeVolume(uint256 _questionId) public view returns (uint256) {
+        return
+            getMarketVolume(_questionId).sub(
+                questions[_questionId].initialLiquidity
+            );
+    }
+
+    function getSharesMaxSell(uint256 _questionId, uint8 _slot)
+        public
+        view
+        returns (uint256)
+    {
+        uint256[2] memory prices = getPrices(_questionId);
+        uint256 volume = getTradeVolume(_questionId);
+        return volume.div(prices[_slot]);
+    }
+
     // ------------------- MODIFIERS -------------------
+
     modifier onlyQuestion(uint256 id) {
         require(id < getTotalQuestions(), "Invalid Question");
         _;
