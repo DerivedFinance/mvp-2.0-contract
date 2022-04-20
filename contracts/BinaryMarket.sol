@@ -56,7 +56,7 @@ contract BinaryMarketData {
         uint256 questionId,
         uint256 slot1,
         uint256 slot2,
-        uint256 tokenAmount,
+        uint256 tokensAmount,
         uint256 sharesAmount,
         uint8 slot,
         uint8 trade,
