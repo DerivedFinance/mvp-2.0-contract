@@ -121,7 +121,7 @@ contract BinaryMarket is
         question.resolveTime = _resolveTime;
         question.initialLiquidity = _initialLiquidity;
         question.fee = _fee;
-        question.slot = 3;
+        question.slot = 2;
         questions.push(question);
 
         Market storage market = markets[_questionIds.current()];
