@@ -362,6 +362,10 @@ contract BinaryMarket is
         return volume.div(prices[_slot]);
     }
 
+    function getQuestionsLength() public view returns (uint256) {
+        return questions.length;
+    }
+
     // ------------------- MODIFIERS -------------------
 
     modifier onlyQuestion(uint256 id) {
@@ -375,7 +379,7 @@ contract BinaryMarket is
     }
 
     modifier onlyUnResolved(uint256 id) {
-        require(questions[id].slot == 3, "Already resolved question");
+        require(questions[id].slot == 2, "Already resolved question");
         _;
     }
 }
