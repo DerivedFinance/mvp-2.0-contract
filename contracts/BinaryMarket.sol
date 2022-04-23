@@ -227,7 +227,7 @@ contract BinaryMarket is
             "Insufficient Amount"
         );
         require(
-            getSharesMaxSell(_questionId, _slot) >= _amount,
+            _amount <= getSharesMaxSell(_questionId, _slot),
             "Insufficient liquidity"
         );
 
