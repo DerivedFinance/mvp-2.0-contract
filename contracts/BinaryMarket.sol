@@ -233,7 +233,7 @@ contract BinaryMarket is
 
         Market storage market = markets[_questionId];
         uint256[2] memory prices = getPrices(_questionId);
-        uint256 tokenAmount = prices[_slot].mul(_amount);
+        uint256 tokenAmount = prices[_slot].mul(_amount).div(10**18);
         uint256 fee = getFee(_questionId, tokenAmount);
         uint256 payAmount = tokenAmount.sub(fee);
 
@@ -359,7 +359,7 @@ contract BinaryMarket is
     {
         uint256[2] memory prices = getPrices(_questionId);
         uint256 volume = getTradeVolume(_questionId);
-        return volume.div(prices[_slot]);
+        return volume.mul(10**18).div(prices[_slot]);
     }
 
     function getQuestionsLength() public view returns (uint256) {

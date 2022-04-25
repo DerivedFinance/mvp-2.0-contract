@@ -1,5 +1,6 @@
 const { ethers } = require("hardhat");
 const { expect } = require("chai");
+const { BigNumber } = require("ethers");
 
 const MOCK_QUESTION_1 = [
   "Test question - 1",
@@ -76,7 +77,7 @@ describe("BinaryMarket", () => {
     expect(question0.resolveTime).to.equal(MOCK_QUESTION_1[3]);
     expect(question0.initialLiquidity).to.equal(MOCK_QUESTION_1[4]);
     expect(question0.fee).to.equal(MOCK_QUESTION_1[5]);
-    expect(question0.slot).to.equal(3);
+    expect(question0.slot).to.equal(2);
   });
 
   it("Should have correct prices", async () => {
@@ -144,8 +145,83 @@ describe("BinaryMarket", () => {
     );
   });
 
-  it("Should revert sell", async () => {
+  it("Should get max sell shares amount", async () => {
+    const sharesMaxSell = await binaryMarket.getSharesMaxSell(0, 0);
+    const prices = await binaryMarket.getPrices(0);
+    const volume = await binaryMarket.getTradeVolume(0);
+    const expectedMaxShares = BigNumber.from(volume.toString())
+      .mul(ethers.utils.parseEther("1"))
+      .div(BigNumber.from(prices[0].toString()))
+      .toString();
+
+    expect(sharesMaxSell.toString()).to.equal(expectedMaxShares);
+  });
+
+  it("Should revert the insufficient liquidity volume sell", async () => {
     const balance = await binaryMarket.balanceOf(bobAddr, 0);
+    // eslint-disable-next-line no-unused-expressions
     expect(binaryMarket.sell(0, balance.toString(), 0)).to.be.reverted;
+  });
+
+  it("Should get revenue by selling shares", async () => {
+    const beforeTrade = await derivedToken.balanceOf(bobAddr);
+
+    const sharesMaxSell = await binaryMarket.getSharesMaxSell(0, 0);
+    const prices = await binaryMarket.getPrices(0);
+    const tx = await binaryMarket
+      .connect(bob)
+      .sell(0, sharesMaxSell.toString(), 0);
+    await tx.wait();
+
+    const afterTrade = await derivedToken.balanceOf(bobAddr);
+    const amount = BigNumber.from(sharesMaxSell.toString())
+      .mul(BigNumber.from(prices[0]))
+      .div(ethers.utils.parseEther("1"));
+    const fee = amount.mul(MOCK_QUESTION_1[5]).div(100);
+    const revenue = amount.sub(fee).toString();
+
+    expect(await binaryMarket.getFee(0, amount.toString())).to.equal(
+      fee.toString()
+    );
+    expect(afterTrade.toString()).to.equal(
+      BigNumber.from(beforeTrade.toString()).add(BigNumber.from(revenue))
+    );
+  });
+
+  it("Should claim reward", async () => {
+    const approve = await derivedToken
+      .connect(charlie)
+      .approve(
+        binaryMarket.address,
+        ethers.utils.parseEther("10000000000000").toString()
+      );
+
+    await approve.wait();
+
+    const buy = await binaryMarket
+      .connect(charlie)
+      .buy(0, ethers.utils.parseEther("50").toString(), 0);
+    await buy.wait();
+
+    const afterBalances = await derivedToken.balanceOf(charlieAddr);
+
+    await ethers.provider.send("evm_increaseTime", [1000]);
+    await ethers.provider.send("evm_mine");
+
+    const resolve = await binaryMarket.resolveQuestion(0, 0);
+    await resolve.wait();
+
+    const reward = await binaryMarket.connect(charlie).getClaimableReward(0);
+
+    const claim = await binaryMarket.connect(charlie).claim(0);
+    await claim.wait();
+
+    const afterClaimBalances = await derivedToken.balanceOf(charlieAddr);
+
+    expect(reward.toString()).to.equal(
+      BigNumber.from(afterClaimBalances.toString()).sub(
+        BigNumber.from(afterBalances.toString())
+      )
+    );
   });
 });
