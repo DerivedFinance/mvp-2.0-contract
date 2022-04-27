@@ -157,7 +157,9 @@ contract BinaryMarket is
         uint256 fee = tradeFees[_questionId];
         require(fee > 0, "No Fee");
 
-        token.safeTransfer(msg.sender, fee);
+        uint256 amount = fee.add(question.initialLiquidity);
+        token.safeTransfer(msg.sender, amount);
+        tradeFees[_questionId] = 0;
 
         Market storage market = markets[_questionId];
         uint256 reward = market.volume.sub(question.initialLiquidity);
