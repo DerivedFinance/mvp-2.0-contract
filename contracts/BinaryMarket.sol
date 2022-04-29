@@ -87,7 +87,150 @@ contract BinaryMarket is
       _initialLiquidity,
       _fee
     );
+=======
+    using SafeMath for uint256;
+    using SafeERC20 for IERC20;
+    using Counters for Counters.Counter;
 
+    Counters.Counter private _questionIds;
+
+    constructor(IERC20 _token)
+        ERC1155("https://derived.fi/images/logo.png")
+    {
+        token = _token;
+        setApprovalForAll(address(this), true);
+    }
+
+    /**
+     * @dev See {IERC1155-supportsInterface}.
+     */
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(ERC1155, ERC1155Receiver)
+        returns (bool)
+    {
+        return
+            interfaceId == type(IERC1155Receiver).interfaceId ||
+            super.supportsInterface(interfaceId);
+    }
+
+    // ------------------- OWNER PUBLIC -------------------
+
+    function createQuestion(
+        string memory _title,
+        string memory _meta,
+        string memory _category,
+        uint256 _resolveTime,
+        uint256 _initialLiquidity,
+        uint8 _fee
+    ) external onlyOwner {
+        require(_initialLiquidity > 0, "Invalid initial funding amount");
+        require(_fee > 0 && _fee < 100, "Invalid trade fee rate");
+        require(_resolveTime > block.timestamp, "Invalid resolve time");
+
+        // Transfer token token
+        token.transferFrom(msg.sender, address(this), _initialLiquidity);
+
+        Question memory question;
+        question.meta = _meta;
+        question.resolveTime = _resolveTime;
+        question.initialLiquidity = _initialLiquidity;
+        question.fee = _fee;
+        question.slot = 2;
+        questions.push(question);
+
+        Market storage market = markets[_questionIds.current()];
+        market.slot1 = _initialLiquidity;
+        market.slot2 = _initialLiquidity;
+        market.volume = _initialLiquidity;
+
+        emit QuestionCreated(
+            _title,
+            _meta,
+            _category,
+            _questionIds.current(),
+            _resolveTime,
+            _initialLiquidity,
+            _fee
+        );
+
+        _questionIds.increment();
+    }
+
+    function resolveQuestion(uint256 _questionId, uint8 _slot)
+        external
+        onlyOwner
+        onlyQuestion(_questionId)
+        onlyUnResolved(_questionId)
+    {
+        require(_slot < 2, "Invalid Answer");
+        require(questions[_questionId].resolveTime <= block.timestamp);
+
+        Question storage question = questions[_questionId];
+        question.slot = _slot;
+
+        uint256 fee = tradeFees[_questionId];
+        require(fee > 0, "No Fee");
+
+        uint256 amount = fee.add(question.initialLiquidity);
+        token.safeTransfer(msg.sender, amount);
+        tradeFees[_questionId] = 0;
+
+        Market storage market = markets[_questionId];
+        uint256 reward = market.volume.sub(question.initialLiquidity);
+        if (_slot == 0) {
+            market.reward = reward.mul(10**18).div(market.slot1);
+        } else {
+            market.reward = reward.mul(10**18).div(market.slot2);
+        }
+
+        emit QuestionResolved(_questionId, _slot);
+    }
+
+    // ------------------- PUBLIC -------------------
+
+    function buy(
+        uint256 _questionId,
+        uint256 _amount,
+        uint8 _slot
+    ) external onlyQuestion(_questionId) onlyUnResolved(_questionId) {
+        require(_slot < 2, "Invalid slot");
+        require(_amount > 0, "Invalid Trade Amount");
+
+        uint256 fee = getFee(_questionId, _amount);
+        tradeFees[_questionId] = tradeFees[_questionId].add(fee);
+
+        uint256 payAmount = _amount.sub(fee);
+        token.safeTransferFrom(msg.sender, address(this), _amount);
+
+        uint256[2] memory prices = getPrices(_questionId);
+        uint256[2] memory slotIds = getSlotIds(_questionId);
+        uint256 sharesAmount = payAmount.div(prices[_slot]).mul(10**18);
+
+        _mint(msg.sender, slotIds[_slot], sharesAmount, "");
+
+        Market storage market = markets[_questionId];
+        market.volume = market.volume.add(payAmount);
+        if (_slot == 0) {
+            market.slot1 = market.slot1.add(sharesAmount);
+        } else {
+            market.slot2 = market.slot2.add(sharesAmount);
+        }
+
+        uint256[2] memory updatedPrices = getPrices(_questionId);
+        emit Trade(
+            _questionId,
+            updatedPrices[0],
+            updatedPrices[1],
+            _amount,
+            sharesAmount,
+            _slot,
+            uint8(0),
+            msg.sender
+        );
+    }
     _questionIds.increment();
   }
 
