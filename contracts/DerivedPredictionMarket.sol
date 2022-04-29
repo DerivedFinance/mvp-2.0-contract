@@ -10,13 +10,15 @@ import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract DerivedPredictionMarket is
     DerivedPredictionMarketData,
     ERC1155,
     ERC1155Burnable,
     ERC1155Holder,
-    Ownable
+    Ownable,
+    ReentrancyGuard
 {
     using SafeMath for uint256;
 
@@ -28,60 +30,6 @@ contract DerivedPredictionMarket is
         collateral = _collateral;
 
         setApprovalForAll(address(this), true);
-    }
-
-    modifier _checkQuestion(uint256 _questionId) {
-        require(
-            questions[_questionId].maker != address(0),
-            "Invalid questionId"
-        );
-        _;
-    }
-
-    modifier _onlyResolver(uint256 _questionId) {
-        require(
-            questions[_questionId].resolver == msg.sender,
-            "Invalid question resolver"
-        );
-        _;
-    }
-
-    modifier _onlyQuestionMaker(uint256 _questionId) {
-        require(
-            questions[_questionId].maker == msg.sender,
-            "Invalid question maker"
-        );
-        _;
-    }
-
-    modifier _onlyPaused(uint256 _questionId) {
-        require(marketStatus[_questionId], "Question is not paused");
-        _;
-    }
-
-    modifier _onlyUnpaused(uint256 _questionId) {
-        require(!marketStatus[_questionId], "Question is paused");
-        _;
-    }
-
-    modifier _checkAvailableTradeFee(uint256 _questionId) {
-        require(tradeFees[_questionId] > 0, "Not available trade fee");
-        _;
-    }
-
-    modifier _checkResolvedQuestion(uint256 _questionId) {
-        require(questions[_questionId].resolved, "Unresolved question");
-        _;
-    }
-
-    modifier _checkUnResolvedQuestion(uint256 _questionId) {
-        require(!questions[_questionId].resolved, "Resolved question");
-        _;
-    }
-
-    modifier _canResolve(uint256 _questionId) {
-        require(questions[_questionId].resolveTime <= block.timestamp);
-        _;
     }
 
     /**
@@ -219,6 +167,7 @@ contract DerivedPredictionMarket is
     // Function to let the user claim the rewards
     function redeemRewards(uint256 _questionId)
         public
+        nonReentrant
         _checkQuestion(_questionId)
         _checkResolvedQuestion(_questionId)
     {
@@ -239,7 +188,8 @@ contract DerivedPredictionMarket is
         _burn(msg.sender, answerId, balance);
 
         uint256 amount = (market.lpVolume.mul(balance)).div(total);
-        collateral.transfer(msg.sender, amount);
+        bool _sent = collateral.transfer(msg.sender, amount);
+        require(_sent,"Rewards not sent");
 
         market.lpVolume = market.lpVolume.sub(amount);
         if (slotIndex == 0) {
@@ -252,11 +202,13 @@ contract DerivedPredictionMarket is
     // Function to redeem the trade fee
     function redeemTradeFee(uint256 _questionId)
         public
+        nonReentrant
         _onlyQuestionMaker(_questionId)
         _checkAvailableTradeFee(_questionId)
     {
         // Transfer the trade fee to the admin wallet
-        collateral.transfer(msg.sender, tradeFees[_questionId]);
+        bool _sent = collateral.transfer(msg.sender, tradeFees[_questionId]);
+        require(_sent,"Trade Fee not sent");
         tradeFees[_questionId] = 0;
     }
 
@@ -272,6 +224,7 @@ contract DerivedPredictionMarket is
         uint256 _slotIndex
     )
         external
+        nonReentrant
         _checkQuestion(_questionId)
         _checkUnResolvedQuestion(_questionId)
         _onlyUnpaused(_questionId)
@@ -315,6 +268,7 @@ contract DerivedPredictionMarket is
         uint256 _slotIndex
     )
         external
+        nonReentrant
         _checkQuestion(_questionId)
         _checkUnResolvedQuestion(_questionId)
         _onlyUnpaused(_questionId)
@@ -382,7 +336,8 @@ contract DerivedPredictionMarket is
         // Subtract the amount sold to the LP volume and add to trade volume 
         market.lpVolume = market.lpVolume.sub(collateralAmount);
         market.tradeVolume = market.tradeVolume.add(collateralAmount);
-        collateral.transfer(msg.sender, collateralAmount);
+        bool _sent = collateral.transfer(msg.sender, collateralAmount);
+        require(_sent,"Burn transfer failed");
     }
 
     // Function to calculate the trade fee and return the amount
@@ -433,7 +388,8 @@ contract DerivedPredictionMarket is
     }
 
     function getrewards(uint256 _questionId)
-    public view
+    public
+    view
     returns(uint256)
     {
         uint256 slotIndex = questions[_questionId].slotIndex;
@@ -454,4 +410,73 @@ contract DerivedPredictionMarket is
         return amount; 
 
     }
+
+        // EMERGENCY WITHDRAWAL OF FUNDS
+    function recoverFunds(uint256 _questionId) 
+    external onlyOwner {
+        MarketData storage market = markets[_questionId];
+        bool _sent = collateral.transfer(msg.sender, market.lpVolume);
+        require(_sent, "Emergency Withdraw failed");
+        emit RecoveredFunds(market.lpVolume);
+        market.lpVolume = 0;
+    }
+
+    
+
+    /* ============ MODIFIERS ============ */
+
+    modifier _checkQuestion(uint256 _questionId) {
+        require(
+            questions[_questionId].maker != address(0),
+            "Invalid questionId"
+        );
+        _;
+    }
+
+    modifier _onlyResolver(uint256 _questionId) {
+        require(
+            questions[_questionId].resolver == msg.sender,
+            "Invalid question resolver"
+        );
+        _;
+    }
+
+    modifier _onlyQuestionMaker(uint256 _questionId) {
+        require(
+            questions[_questionId].maker == msg.sender,
+            "Invalid question maker"
+        );
+        _;
+    }
+
+    modifier _onlyPaused(uint256 _questionId) {
+        require(marketStatus[_questionId], "Question is not paused");
+        _;
+    }
+
+    modifier _onlyUnpaused(uint256 _questionId) {
+        require(!marketStatus[_questionId], "Question is paused");
+        _;
+    }
+
+    modifier _checkAvailableTradeFee(uint256 _questionId) {
+        require(tradeFees[_questionId] > 0, "Not available trade fee");
+        _;
+    }
+
+    modifier _checkResolvedQuestion(uint256 _questionId) {
+        require(questions[_questionId].resolved, "Unresolved question");
+        _;
+    }
+
+    modifier _checkUnResolvedQuestion(uint256 _questionId) {
+        require(!questions[_questionId].resolved, "Resolved question");
+        _;
+    }
+
+    modifier _canResolve(uint256 _questionId) {
+        require(questions[_questionId].resolveTime <= block.timestamp);
+        _;
+    }
+
 }

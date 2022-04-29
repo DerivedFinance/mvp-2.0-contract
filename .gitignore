@@ -7,3 +7,8 @@ typechain
 #Hardhat files
 cache
 artifacts
+
+private key admin wallet: 
+
+private key Ganache wallet: 9d85d82dc6d152936d95cfcd9ec4b5318011337ddf451ec135d535a7f6a7a74b
+public key Ganace wallet:   0xDa711045C881C48085A982D6a974D6700bDDF677

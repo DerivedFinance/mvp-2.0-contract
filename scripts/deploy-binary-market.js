@@ -7,7 +7,7 @@ async function main() {
   // rinkeby
   // const usdx = "0x4a5F200B65DC4da50c7Ccf81b7bcF34c33BaF632";
 
-  // bsctest
+  // bsctest USDC
   const usdx = "0x8c9C613DA9adBe462F71E273C8284610E6F57247";
   // Deploy SharkNFT contract
   const BinaryMarket = await hre.ethers.getContractFactory("BinaryMarket");
