@@ -74,6 +74,7 @@ contract DerivedPredictionMarketData {
     );
     event TradePaused(uint256 questionId);
     event TradeUnpaused(uint256 questionId);
+    event RecoveredFunds(uint256 amount);
 
     // Generate Hashed QuestionID
     function generateQuestionId(
