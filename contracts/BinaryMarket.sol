@@ -162,11 +162,21 @@ contract BinaryMarket is
         tradeFees[_questionId] = 0;
 
         Market storage market = markets[_questionId];
-        uint256 reward = market.volume.sub(question.initialLiquidity);
+        uint256 tradeVolume = getTradeVolume(_questionId);
         if (_slot == 0) {
-            market.reward = reward.mul(10**18).div(market.slot1);
+            uint256 slot1 = market.slot1.sub(question.initialLiquidity);
+            if (slot1 == 0) {
+                market.reward = 0;
+            } else {
+                market.reward = tradeVolume.mul(10**18).div(slot1);
+            }
         } else {
-            market.reward = reward.mul(10**18).div(market.slot2);
+            uint256 slot2 = market.slot2.sub(question.initialLiquidity);
+            if (slot2 == 0) {
+                market.reward = 0;
+            } else {
+                market.reward = tradeVolume.mul(10**18).div(slot2);
+            }
         }
 
         emit QuestionResolved(_questionId, _slot);

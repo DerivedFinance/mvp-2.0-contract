@@ -213,6 +213,20 @@ describe("BinaryMarket", () => {
 
     const reward = await binaryMarket.connect(charlie).getClaimableReward(0);
 
+    const yesBalance = await binaryMarket.balanceOf(charlieAddr, 0);
+    const marketVolume = await binaryMarket.getMarketVolume(0);
+    const tradeVolume = await binaryMarket.getTradeVolume(0);
+    const market = await binaryMarket.markets(0);
+    console.log("Reward: ", {
+      reward: reward.toString(),
+      yesBalance: yesBalance.toString(),
+      marketVolume: marketVolume.toString(),
+      tradeVolume: tradeVolume.toString(),
+      "market.reward": market.reward.toString(),
+      "market.slot1": market.slot1.toString(),
+      "market.slot2": market.slot2.toString(),
+    });
+
     const claim = await binaryMarket.connect(charlie).claim(0);
     await claim.wait();
 
