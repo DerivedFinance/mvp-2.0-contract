@@ -157,7 +157,7 @@ contract BinaryMarket is
   {
     require(_slot < 2, "Invalid slot");
     require(_amount > 0, "Invalid Trade Amount");
-    require(questions[_questionId].resolveTime <= block.timestamp);
+    require(questions[_questionId].resolveTime >= block.timestamp, "Option already expired");
 
     uint256 fee = getFee(_questionId, _amount);
     tradeFees[_questionId] = tradeFees[_questionId].add(fee);
@@ -199,7 +199,7 @@ contract BinaryMarket is
   ) external nonReentrant onlyQuestion(_questionId) onlyUnResolved(_questionId) {
     require(_slot < 2, "Invalid slot");
     require(_amount > 0, "Invalid Trade Amount");
-    require(questions[_questionId].resolveTime <= block.timestamp);
+    require(questions[_questionId].resolveTime >= block.timestamp, "Option already expired");
 
     uint256[2] memory slotIds = getSlotIds(_questionId);
     require(
