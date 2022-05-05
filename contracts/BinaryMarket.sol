@@ -196,7 +196,7 @@ contract BinaryMarket is
     uint256 _questionId,
     uint256 _amount,
     uint8 _slot
-  ) external nonReentrant onlyQuestion(_questionId) onlyUnResolved(_questionId) {
+  ) external nonReentrant onlyQuestion(_questionId) onlyUnResolved(_questionId) returns (uint256 payAmount){
     require(_slot < 2, "Invalid slot");
     require(_amount > 0, "Invalid Trade Amount");
     require(questions[_questionId].resolveTime >= block.timestamp, "Option already expired");
@@ -215,7 +215,7 @@ contract BinaryMarket is
     uint256[2] memory prices = getPrices(_questionId);
     uint256 tokenAmount = prices[_slot].mul(_amount).div(10**18);
     uint256 fee = getFee(_questionId, tokenAmount);
-    uint256 payAmount = tokenAmount.sub(fee);
+    payAmount = tokenAmount.sub(fee);
 
     _burn(msg.sender, slotIds[_slot], _amount);
 
@@ -240,6 +240,7 @@ contract BinaryMarket is
       uint8(1),
       msg.sender
     );
+   
   }
 
   function claim(uint256 _questionId)
