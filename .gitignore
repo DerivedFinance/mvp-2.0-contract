@@ -8,7 +8,10 @@ typechain
 cache
 artifacts
 
-private key admin wallet: 
+graph access token : 53fbe7e83bb7443dbc056439d4d4b173
+
+private key admin wallet: PRIVATE_KEY=7949339152f684c3cc04aa289bd6406dfcaa6ba4bdb6a73df1e512dbc63350f0
+BSCSCAN_API_KEY =  "KIXZ9WXEG61QK4DANFQPG9SF84MAARMDAF";
 
 private key Ganache wallet: 9d85d82dc6d152936d95cfcd9ec4b5318011337ddf451ec135d535a7f6a7a74b
 public key Ganace wallet:   0xDa711045C881C48085A982D6a974D6700bDDF677

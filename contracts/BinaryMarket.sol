@@ -59,7 +59,7 @@ contract BinaryMarket is
     uint8 _fee
   ) external onlyOwner {
     require(_initialLiquidity > 0, "Invalid initial funding amount");
-    require(_fee > 0 && _fee < 100, "Invalid trade fee rate");
+    require(_fee >= 0 && _fee < 100, "Invalid trade fee rate");
     require(_resolveTime > block.timestamp, "Invalid resolve time");
 
     // Transfer token token
@@ -222,7 +222,7 @@ contract BinaryMarket is
     tradeFees[_questionId] = tradeFees[_questionId].add(fee);
     token.safeTransfer(msg.sender, payAmount);
 
-    market.volume = market.volume.sub(tokenAmount);
+    market.volume = market.volume.add(tokenAmount); //volume should increase on buy and sell both
     if (_slot == 0) {
       market.slot1 = market.slot1.sub(_amount);
     } else {
