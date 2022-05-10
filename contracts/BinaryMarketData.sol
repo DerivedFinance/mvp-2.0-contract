@@ -11,6 +11,7 @@ contract BinaryMarketData {
         uint256 initialLiquidity;
         uint8 fee;
         uint8 slot;
+        bool isPaused;
     }
 
     struct Market {
@@ -55,5 +56,5 @@ contract BinaryMarketData {
         address trader
     );
 
-    event RecoveredFunds(uint256 amount, address _sent);
+    event TradePaused(uint256 questionId);
 }

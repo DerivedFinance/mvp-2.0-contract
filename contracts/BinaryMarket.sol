@@ -133,13 +133,20 @@ contract BinaryMarket is
 
     // ========== EMERGENCY WITHDRAWAL OF FUNDS ============
     function recoverFunds(uint256 _questionId) external nonReentrant onlyOwner {
-        uint256 amount = getClaimableReward(_questionId);
-        require(amount > 0, "No Emergency Claimable Reward");
+        Question storage question = questions[_questionId];
+        require(!question.isPaused, "Already paused");
+
+        uint256 amount = tradeFees[_questionId].add(
+            getMarketVolume(_questionId)
+        );
+        require(amount > 0, "Not available funds");
 
         token.safeTransfer(msg.sender, amount);
-        markets[_questionId].reward = 0;
 
-        emit RecoveredFunds(amount, msg.sender);
+        tradeFees[_questionId] = 0;
+        question.isPaused = true;
+
+        emit TradePaused(_questionId);
     }
 
     // ------------------- PUBLIC -------------------
@@ -156,6 +163,8 @@ contract BinaryMarket is
     {
         require(_slot < 2, "Invalid slot");
         require(_amount > 0, "Invalid Trade Amount");
+
+        require(!getQuestionStatus(_questionId), "Trade is not available");
         require(
             questions[_questionId].resolveTime >= block.timestamp,
             "Option already expired"
@@ -207,6 +216,8 @@ contract BinaryMarket is
     {
         require(_slot < 2, "Invalid slot");
         require(_amount > 0, "Invalid Trade Amount");
+
+        require(!getQuestionStatus(_questionId), "Trade is not available");
         require(
             questions[_questionId].resolveTime >= block.timestamp,
             "Option already expired"
@@ -358,6 +369,10 @@ contract BinaryMarket is
         return questions.length;
     }
 
+    function getQuestionStatus(uint256 _questionId) public view returns (bool) {
+        return questions[_questionId].isPaused;
+    }
+
     // ------------------- MODIFIERS -------------------
 
     modifier onlyQuestion(uint256 id) {
@@ -366,7 +381,7 @@ contract BinaryMarket is
     }
 
     modifier onlyResolved(uint256 id) {
-        require(questions[id].slot != 3, "Not resolved question");
+        require(questions[id].slot < 2, "Not resolved question");
         _;
     }
 
