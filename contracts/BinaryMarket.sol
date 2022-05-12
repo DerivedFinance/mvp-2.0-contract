@@ -28,8 +28,10 @@ contract BinaryMarket is
 
     Counters.Counter private _questionIds;
 
-    constructor(IERC20 _token) ERC1155("https://derived.fi/images/logo.png") {
-        token = _token;
+    constructor() ERC1155("https://derived.fi/images/logo.png") {}
+
+    function initialize(address _token) public {
+        token = IERC20(_token);
         setApprovalForAll(address(this), true);
     }
 
