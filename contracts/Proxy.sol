@@ -2,8 +2,6 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-
 library StorageSlot {
     function getAddressAt(bytes32 slot) internal view returns (address a) {
         assembly {
@@ -18,9 +16,16 @@ library StorageSlot {
     }
 }
 
-contract Proxy is Ownable {
+contract Proxy {
+    address public callerAddress;
+    address private owner;
+
     bytes32 private constant _IMPL_SLOT =
         bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
+
+    constructor() {
+        owner = msg.sender;
+    }
 
     function setImplementation(address implementation_) public onlyOwner {
         StorageSlot.setAddressAt(_IMPL_SLOT, implementation_);
@@ -51,6 +56,12 @@ contract Proxy is Ownable {
     }
 
     fallback() external {
+        callerAddress = msg.sender;
         _delegate(StorageSlot.getAddressAt(_IMPL_SLOT));
+    }
+
+    modifier onlyOwner() {
+        require(owner == msg.sender, "Proxy: The caller is not the owner");
+        _;
     }
 }

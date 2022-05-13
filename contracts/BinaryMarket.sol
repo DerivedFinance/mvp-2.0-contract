@@ -6,17 +6,18 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "./BinaryMarketData.sol";
+import "./Owned.sol";
+import "./Proxy.sol";
 
 contract BinaryMarket is
     BinaryMarketData,
-    Ownable,
+    Owned,
     ERC1155,
     ERC1155Burnable,
     ERC1155Holder,
@@ -25,13 +26,17 @@ contract BinaryMarket is
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
     using Counters for Counters.Counter;
+    Proxy public proxy;
 
     Counters.Counter private _questionIds;
 
     constructor() ERC1155("https://derived.fi/images/logo.png") {}
 
-    function initialize(address _token) public {
+    function initialize(address payable _token, address _owner, address payable _proxy) public {
+        // _setURI(_uri);
+        ownerAddress = _owner;
         token = IERC20(_token);
+        proxy = Proxy(_proxy);
         setApprovalForAll(address(this), true);
     }
 
@@ -59,7 +64,7 @@ contract BinaryMarket is
         uint256 _resolveTime,
         uint256 _initialLiquidity,
         uint8 _fee
-    ) external onlyOwner {
+    ) external onlyProxyOrOwner {
         require(_initialLiquidity > 0, "Invalid initial funding amount");
         require(_fee >= 0 && _fee < 100, "Invalid trade fee rate");
         require(_resolveTime > block.timestamp, "Invalid resolve time");
@@ -95,7 +100,7 @@ contract BinaryMarket is
 
     function resolveQuestion(uint256 _questionId, uint8 _slot)
         external
-        onlyOwner
+        onlyProxyOrOwner
         onlyQuestion(_questionId)
         onlyUnResolved(_questionId)
     {
@@ -134,7 +139,11 @@ contract BinaryMarket is
     }
 
     // ========== EMERGENCY WITHDRAWAL OF FUNDS ============
-    function recoverFunds(uint256 _questionId) external nonReentrant onlyOwner {
+    function recoverFunds(uint256 _questionId)
+        external
+        nonReentrant
+        onlyProxyOrOwner
+    {
         Question storage question = questions[_questionId];
         require(!question.isPaused, "Already paused");
 
@@ -389,6 +398,14 @@ contract BinaryMarket is
 
     modifier onlyUnResolved(uint256 id) {
         require(questions[id].slot == 2, "Already resolved question");
+        _;
+    }
+
+    modifier onlyProxyOrOwner() {
+        require(
+            proxy.callerAddress() == ownerAddress || msg.sender == ownerAddress,
+            "Caller is not the proxy owner"
+        );
         _;
     }
 }
