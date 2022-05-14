@@ -27,17 +27,20 @@ contract BinaryMarket is
     using SafeERC20 for IERC20;
     using Counters for Counters.Counter;
     Proxy public proxy;
+    bool public initialized;
 
     Counters.Counter private _questionIds;
 
     constructor() ERC1155("https://derived.fi/images/logo.png") {}
 
     function initialize(address payable _token, address _owner, address payable _proxy) public {
+        require(!initialized, "already initialized");
         // _setURI(_uri);
         ownerAddress = _owner;
         token = IERC20(_token);
         proxy = Proxy(_proxy);
         setApprovalForAll(address(this), true);
+        initialized = true;
     }
 
     /**
