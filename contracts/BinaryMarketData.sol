@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 contract BinaryMarketData {
     struct Question {
@@ -31,7 +31,7 @@ contract BinaryMarketData {
 
     mapping(uint256 => uint256) public tradeFees;
 
-    IERC20 public token;
+    IERC20Upgradeable public token;
 
     event QuestionCreated(
         string title,

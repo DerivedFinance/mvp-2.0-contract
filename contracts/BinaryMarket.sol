@@ -2,14 +2,16 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
-import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155BurnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "./BinaryMarketData.sol";
 import "./Owned.sol";
@@ -17,30 +19,27 @@ import "./Proxy.sol";
 
 contract BinaryMarket is
     BinaryMarketData,
-    Owned,
-    ERC1155,
-    ERC1155Burnable,
-    ERC1155Holder,
-    ReentrancyGuard
+    Initializable,
+    OwnableUpgradeable,
+    ERC1155Upgradeable,
+    ERC1155BurnableUpgradeable,
+    ERC1155HolderUpgradeable,
+    ReentrancyGuardUpgradeable
 {
-    using SafeMath for uint256;
-    using SafeERC20 for IERC20;
-    using Counters for Counters.Counter;
-    Proxy public proxy;
+    using SafeMathUpgradeable for uint256;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
+    using CountersUpgradeable for CountersUpgradeable.Counter;
     bool public initialized;
 
-    Counters.Counter private _questionIds;
+    CountersUpgradeable.Counter private _questionIds;
 
-    constructor() ERC1155("https://derived.fi/images/logo.png") {}
+    function initialize(address payable _token) external initializer {
+        __Ownable_init();
+        __ERC1155Holder_init();
+        __ReentrancyGuard_init();
 
-    function initialize(address payable _token, address _owner, address payable _proxy) public {
-        require(!initialized, "already initialized");
-        // _setURI(_uri);
-        ownerAddress = _owner;
-        token = IERC20(_token);
-        proxy = Proxy(_proxy);
+        token = IERC20Upgradeable(_token);
         setApprovalForAll(address(this), true);
-        initialized = true;
     }
 
     /**
@@ -50,11 +49,11 @@ contract BinaryMarket is
         public
         view
         virtual
-        override(ERC1155, ERC1155Receiver)
+        override(ERC1155Upgradeable, ERC1155ReceiverUpgradeable)
         returns (bool)
     {
         return
-            interfaceId == type(IERC1155Receiver).interfaceId ||
+            interfaceId == type(IERC1155ReceiverUpgradeable).interfaceId ||
             super.supportsInterface(interfaceId);
     }
 
@@ -67,7 +66,7 @@ contract BinaryMarket is
         uint256 _resolveTime,
         uint256 _initialLiquidity,
         uint8 _fee
-    ) external onlyProxyOrOwner {
+    ) external onlyOwner {
         require(_initialLiquidity > 0, "Invalid initial funding amount");
         require(_fee >= 0 && _fee < 100, "Invalid trade fee rate");
         require(_resolveTime > block.timestamp, "Invalid resolve time");
@@ -103,7 +102,7 @@ contract BinaryMarket is
 
     function resolveQuestion(uint256 _questionId, uint8 _slot)
         external
-        onlyProxyOrOwner
+        onlyOwner
         onlyQuestion(_questionId)
         onlyUnResolved(_questionId)
     {
@@ -142,11 +141,7 @@ contract BinaryMarket is
     }
 
     // ========== EMERGENCY WITHDRAWAL OF FUNDS ============
-    function recoverFunds(uint256 _questionId)
-        external
-        nonReentrant
-        onlyProxyOrOwner
-    {
+    function recoverFunds(uint256 _questionId) external nonReentrant onlyOwner {
         Question storage question = questions[_questionId];
         require(!question.isPaused, "Already paused");
 
@@ -401,14 +396,6 @@ contract BinaryMarket is
 
     modifier onlyUnResolved(uint256 id) {
         require(questions[id].slot == 2, "Already resolved question");
-        _;
-    }
-
-    modifier onlyProxyOrOwner() {
-        require(
-            proxy.callerAddress() == ownerAddress || msg.sender == ownerAddress,
-            "Caller is not the proxy owner"
-        );
         _;
     }
 }
