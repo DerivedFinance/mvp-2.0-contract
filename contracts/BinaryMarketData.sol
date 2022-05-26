@@ -19,6 +19,7 @@ contract BinaryMarketData {
         uint256 slot2;
         uint256 volume;
         uint256 reward;
+        uint256 liquidity;
     }
 
     Question[] public questions;

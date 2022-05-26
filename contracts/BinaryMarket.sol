@@ -86,6 +86,7 @@ contract BinaryMarket is
         market.slot1 = _initialLiquidity;
         market.slot2 = _initialLiquidity;
         market.volume = _initialLiquidity;
+        market.liquidity = _initialLiquidity;
 
         emit QuestionCreated(
             _title,
@@ -120,7 +121,7 @@ contract BinaryMarket is
         tradeFees[_questionId] = 0;
 
         Market storage market = markets[_questionId];
-        uint256 tradeVolume = getTradeVolume(_questionId);
+        uint256 tradeVolume = getLiquidityVolume(_questionId);
         if (_slot == 0) {
             uint256 slot1 = market.slot1.sub(question.initialLiquidity);
             if (slot1 == 0) {
@@ -146,7 +147,7 @@ contract BinaryMarket is
         require(!question.isPaused, "Already paused");
 
         uint256 amount = tradeFees[_questionId].add(
-            getMarketVolume(_questionId)
+            getRewardVolume(_questionId)
         );
         require(amount > 0, "Not available funds");
 
@@ -193,6 +194,7 @@ contract BinaryMarket is
 
         Market storage market = markets[_questionId];
         market.volume = market.volume.add(payAmount);
+        market.liquidity = market.liquidity.add(payAmount);
         if (_slot == 0) {
             market.slot1 = market.slot1.add(sharesAmount);
         } else {
@@ -253,7 +255,8 @@ contract BinaryMarket is
         tradeFees[_questionId] = tradeFees[_questionId].add(fee);
         token.safeTransfer(msg.sender, payAmount);
 
-        market.volume = market.volume.add(tokenAmount); //volume should increase on buy and sell both
+        market.volume = market.volume.add(tokenAmount);
+        market.liquidity = market.liquidity.sub(tokenAmount);
         if (_slot == 0) {
             market.slot1 = market.slot1.sub(_amount);
         } else {
@@ -286,6 +289,9 @@ contract BinaryMarket is
 
         uint256 balance = balanceOf(msg.sender, slotIds[slot]);
         require(balance > 0, "No Balance");
+
+        Market storage market = markets[_questionId];
+        market.liquidity = market.liquidity.sub(amount);
 
         _burn(msg.sender, slotIds[slot], balance);
         token.safeTransfer(msg.sender, amount);
@@ -349,17 +355,28 @@ contract BinaryMarket is
         return amount;
     }
 
-    function getMarketVolume(uint256 _questionId)
+    function getTradeVolume(uint256 _questionId) public view returns (uint256) {
+        return
+            markets[_questionId].volume.sub(
+                questions[_questionId].initialLiquidity
+            );
+    }
+
+    function getLiquidityVolume(uint256 _questionId)
         public
         view
         returns (uint256)
     {
-        return markets[_questionId].volume;
+        return markets[_questionId].liquidity;
     }
 
-    function getTradeVolume(uint256 _questionId) public view returns (uint256) {
+    function getRewardVolume(uint256 _questionId)
+        public
+        view
+        returns (uint256)
+    {
         return
-            getMarketVolume(_questionId).sub(
+            getLiquidityVolume(_questionId).sub(
                 questions[_questionId].initialLiquidity
             );
     }
@@ -370,7 +387,7 @@ contract BinaryMarket is
         returns (uint256)
     {
         uint256[2] memory prices = getPrices(_questionId);
-        uint256 volume = getTradeVolume(_questionId);
+        uint256 volume = getRewardVolume(_questionId);
         return volume.mul(10**18).div(prices[_slot]);
     }
 
