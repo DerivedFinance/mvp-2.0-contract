@@ -292,7 +292,63 @@ contract DerivedPredictionMarket is
         );
     }
 
-    function _mintShares(
+    // CPMM Mint shares function
+
+function _mintShares(
+        uint256 _questionId,
+        uint256 _collateralAmount,
+        uint256 _slotIndex,
+        address _spender
+    ) private returns (uint256 amount) {
+        //uint256[2] memory prices = getAnswerPrices(_questionId);
+        uint256 answerId = generateAnswerId(_questionId, _slotIndex);
+        //amount = (_collateralAmount.mul(1e18)).div(prices[_slotIndex]);
+
+        _mint(_spender, answerId, amount, "");
+
+        MarketData storage market = markets[_questionId];
+        if (_slotIndex == 0) { // Buy Yes
+                market.short = market.short.add(_collateralAmount);
+                amount = (market.long * _collateralAmount)/(market.short);
+                market.long = market.long.sub(amount);
+
+        } else { // Buy No
+
+            market.long = market.long.add(_collateralAmount);
+            amount = (market.short * _collateralAmount)/(market.long);
+            market.long = market.short.sub(amount);
+        }
+    }
+
+ function _burnShares(
+        uint256 _questionId,
+        uint256 _amount,
+        uint256 _slotIndex
+    ) private returns (uint256 collateralAmount) {
+        uint256 answerId = generateAnswerId(_questionId, _slotIndex);
+        require(balanceOf(msg.sender, answerId) >= _amount, "Overflow amount");
+        _burn(msg.sender, answerId, _amount);
+
+        uint256[2] memory prices = getAnswerPrices(_questionId);
+        collateralAmount = (_amount.mul(prices[_slotIndex])).div(1e18);
+        collateralAmount = _addTradeFee(_questionId, collateralAmount);
+
+        MarketData storage market = markets[_questionId];
+         // Reduce the long / short side after sell
+        if (_slotIndex == 0) {
+            market.long = market.long.sub(collateralAmount);
+        } else {
+            market.short = market.short.sub(collateralAmount);
+        }
+
+        // Subtract the amount sold to the LP volume and add to trade volume 
+        market.lpVolume = market.lpVolume.sub(collateralAmount);
+        market.tradeVolume = market.tradeVolume.add(collateralAmount);
+        bool _sent = collateral.transfer(msg.sender, collateralAmount);
+        require(_sent,"Burn transfer failed");
+    }
+
+   /* function _mintShares(
         uint256 _questionId,
         uint256 _collateralAmount,
         uint256 _slotIndex,
@@ -339,6 +395,7 @@ contract DerivedPredictionMarket is
         bool _sent = collateral.transfer(msg.sender, collateralAmount);
         require(_sent,"Burn transfer failed");
     }
+    */
 
     // Function to calculate the trade fee and return the amount
     function _addTradeFee(uint256 _questionId, uint256 _amount)

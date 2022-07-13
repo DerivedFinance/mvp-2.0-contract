@@ -186,20 +186,37 @@ contract BinaryMarket is
         uint256 payAmount = _amount.sub(fee);
         token.safeTransferFrom(msg.sender, address(this), _amount);
 
-        uint256[2] memory prices = getPrices(_questionId);
+        //uint256[2] memory prices = getPrices(_questionId);
         uint256[2] memory slotIds = getSlotIds(_questionId);
-        uint256 sharesAmount = payAmount.div(prices[_slot]).mul(10**18);
-
-        _mint(msg.sender, slotIds[_slot], sharesAmount, "");
+        uint256 sharesAmount;
+        
+        /*==== BV changes as per CPMM =====*/
 
         Market storage market = markets[_questionId];
+
+        if (_slot == 0) { // Buy Yes or slot1
+                market.slot2 = market.slot2.add(payAmount);
+                sharesAmount = (market.slot1 * payAmount)/(market.slot2);
+                market.slot1 = market.slot1.sub(sharesAmount);
+
+        } else { // Buy No or slot2
+
+            market.slot1 = market.slot1.add(payAmount);
+            sharesAmount = (market.slot2 * payAmount)/(market.slot1);
+            market.slot2 = market.slot2.sub(sharesAmount);
+        }
+
+        _mint(msg.sender, slotIds[_slot], sharesAmount, "");
+        
+        //Market storage market = markets[_questionId];
         market.volume = market.volume.add(payAmount);
         market.liquidity = market.liquidity.add(payAmount);
-        if (_slot == 0) {
+       /* 
+       if (_slot == 0) {
             market.slot1 = market.slot1.add(sharesAmount);
         } else {
             market.slot2 = market.slot2.add(sharesAmount);
-        }
+        }*/
 
         uint256[2] memory updatedPrices = getPrices(_questionId);
         emit Trade(
@@ -239,12 +256,24 @@ contract BinaryMarket is
             balanceOf(msg.sender, slotIds[_slot]) >= _amount,
             "Insufficient Amount"
         );
-        require(
+       /* require(
             _amount <= getSharesMaxSell(_questionId, _slot),
             "Insufficient liquidity"
-        );
+        );*/
 
         Market storage market = markets[_questionId];
+        
+        
+        if (_slot == 0) { //Sell Y or slot 1
+                market.slot1 = market.slot1.add(_amount);
+                market.slot2 = market.slot2.sub((market.slot2 * _amount)/(market.slot1));
+            
+        } else { // Sell No or slot 2
+                market.slot2 = market.slot2.add(_amount);
+                market.slot1 = market.slot1.sub((market.slot1 * _amount)/(market.slot2));
+
+        }
+
         uint256[2] memory prices = getPrices(_questionId);
         uint256 tokenAmount = prices[_slot].mul(_amount).div(10**18);
         uint256 fee = getFee(_questionId, tokenAmount);
@@ -252,16 +281,11 @@ contract BinaryMarket is
 
         _burn(msg.sender, slotIds[_slot], _amount);
 
-        tradeFees[_questionId] = tradeFees[_questionId].add(fee);
-        token.safeTransfer(msg.sender, payAmount);
-
         market.volume = market.volume.add(tokenAmount);
         market.liquidity = market.liquidity.sub(tokenAmount);
-        if (_slot == 0) {
-            market.slot1 = market.slot1.sub(_amount);
-        } else {
-            market.slot2 = market.slot2.sub(_amount);
-        }
+        tradeFees[_questionId] = tradeFees[_questionId].add(fee);
+
+        token.safeTransfer(msg.sender, payAmount);
 
         uint256[2] memory updatedPrices = getPrices(_questionId);
         emit Trade(
@@ -303,6 +327,7 @@ contract BinaryMarket is
         return _questionIds.current();
     }
 
+    // returns total number of shares for a particular option
     function getShares(uint256 _questionId) public view returns (uint256) {
         Market memory market = markets[_questionId];
         return market.slot1.add(market.slot2);
@@ -320,8 +345,8 @@ contract BinaryMarket is
 
         Market memory market = markets[_questionId];
         return [
-            market.slot1.mul(10**18).div(shares),
-            market.slot2.mul(10**18).div(shares)
+            market.slot2.mul(10**18).div(shares),
+            market.slot1.mul(10**18).div(shares)
         ];
     }
 
