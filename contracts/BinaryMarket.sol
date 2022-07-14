@@ -195,15 +195,21 @@ contract BinaryMarket is
         Market storage market = markets[_questionId];
 
         if (_slot == 0) { // Buy Yes or slot1
-                market.slot2 = market.slot2.add(payAmount);
-                sharesAmount = (market.slot1 * payAmount)/(market.slot2);
-                market.slot1 = market.slot1.sub(sharesAmount);
+                
+                uint256 sharesNo = market.slot2.add(payAmount);
+                uint256 slotAmount = (market.slot1 * market.slot2)/(sharesNo);
+                market.slot2 = sharesNo;
+                sharesAmount = market.slot1.add(payAmount).sub(slotAmount);
+                market.slot1 = slotAmount;
 
         } else { // Buy No or slot2
 
-            market.slot1 = market.slot1.add(payAmount);
-            sharesAmount = (market.slot2 * payAmount)/(market.slot1);
-            market.slot2 = market.slot2.sub(sharesAmount);
+                uint256 sharesYes = market.slot1.add(payAmount);
+                uint256 slotAmount = (market.slot1 * market.slot2)/(sharesYes);
+                market.slot1 = sharesYes;
+                sharesAmount = market.slot2.add(payAmount).sub(slotAmount);
+                market.slot2 = slotAmount;
+           
         }
 
         _mint(msg.sender, slotIds[_slot], sharesAmount, "");
