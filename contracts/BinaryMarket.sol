@@ -271,12 +271,14 @@ contract BinaryMarket is
         
         
         if (_slot == 0) { //Sell Y or slot 1
-                market.slot1 = market.slot1.add(_amount);
-                market.slot2 = market.slot2.sub((market.slot2 * _amount)/(market.slot1));
+                uint256 _newSlot1 = market.slot1.add(_amount);
+                market.slot2 = _newSlot1.div(market.slot1);
+                market.slot1 = _newSlot1;
             
         } else { // Sell No or slot 2
-                market.slot2 = market.slot2.add(_amount);
-                market.slot1 = market.slot1.sub((market.slot1 * _amount)/(market.slot2));
+                uint256 _newSlot2 = market.slot2.add(_amount);
+                market.slot1 = _newSlot2.div(market.slot2);
+                market.slot2 = _newSlot2;
 
         }
 
