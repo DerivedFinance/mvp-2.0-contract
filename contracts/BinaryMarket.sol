@@ -30,8 +30,9 @@ contract BinaryMarket is
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using CountersUpgradeable for CountersUpgradeable.Counter;
     bool public initialized;
-
+    uint256 private constant ONE = 10**18;
     CountersUpgradeable.Counter private _questionIds;
+    uint256 private s_TotalRewardAmount;
 
     function initialize(address payable _token) external initializer {
         __Ownable_init();
@@ -104,7 +105,6 @@ contract BinaryMarket is
     function resolveQuestion(uint256 _questionId, uint8 _slot)
         external
         onlyOwner
-        onlyQuestion(_questionId)
         onlyUnResolved(_questionId)
     {
         require(_slot < 2, "Invalid Answer");
@@ -137,7 +137,7 @@ contract BinaryMarket is
                 market.reward = tradeVolume.mul(10**18).div(slot2);
             }
         }
-
+        s_TotalRewardAmount += amount.add(market.reward);
         emit QuestionResolved(_questionId, _slot);
     }
 
@@ -168,7 +168,6 @@ contract BinaryMarket is
     )
         external
         nonReentrant
-        onlyQuestion(_questionId)
         onlyUnResolved(_questionId)
     {
         require(_slot < 2, "Invalid slot");
@@ -177,7 +176,7 @@ contract BinaryMarket is
         require(!getQuestionStatus(_questionId), "Trade is not available");
         require(
             questions[_questionId].resolveTime >= block.timestamp,
-            "Option already expired"
+            "Option already expired but unresolved"
         );
 
         uint256 fee = getFee(_questionId, _amount);
@@ -197,7 +196,7 @@ contract BinaryMarket is
         if (_slot == 0) { // Buy Yes or slot1
                 
                 uint256 sharesNo = market.slot2.add(payAmount);
-                uint256 slotAmount = (market.slot1 * market.slot2)/(sharesNo);
+                uint256 slotAmount = market.slot1.mul(market.slot2).div(sharesNo);
                 market.slot2 = sharesNo;
                 sharesAmount = market.slot1.add(payAmount).sub(slotAmount);
                 market.slot1 = slotAmount;
@@ -205,7 +204,7 @@ contract BinaryMarket is
         } else { // Buy No or slot2
 
                 uint256 sharesYes = market.slot1.add(payAmount);
-                uint256 slotAmount = (market.slot1 * market.slot2)/(sharesYes);
+                uint256 slotAmount = market.slot1.mul(market.slot2).div(sharesYes);
                 market.slot1 = sharesYes;
                 sharesAmount = market.slot2.add(payAmount).sub(slotAmount);
                 market.slot2 = slotAmount;
@@ -214,16 +213,9 @@ contract BinaryMarket is
 
         _mint(msg.sender, slotIds[_slot], sharesAmount, "");
         
-        //Market storage market = markets[_questionId];
         market.volume = market.volume.add(payAmount);
         market.liquidity = market.liquidity.add(payAmount);
-       /* 
-       if (_slot == 0) {
-            market.slot1 = market.slot1.add(sharesAmount);
-        } else {
-            market.slot2 = market.slot2.add(sharesAmount);
-        }*/
-
+       
         uint256[2] memory updatedPrices = getPrices(_questionId);
         emit Trade(
             _questionId,
@@ -244,7 +236,6 @@ contract BinaryMarket is
     )
         external
         nonReentrant
-        onlyQuestion(_questionId)
         onlyUnResolved(_questionId)
         returns (uint256 payAmount)
     {
@@ -262,22 +253,21 @@ contract BinaryMarket is
             balanceOf(msg.sender, slotIds[_slot]) >= _amount,
             "Insufficient Amount"
         );
-       /* require(
-            _amount <= getSharesMaxSell(_questionId, _slot),
-            "Insufficient liquidity"
-        );*/
+       
 
         Market storage market = markets[_questionId];
         
         
         if (_slot == 0) { //Sell Y or slot 1
                 uint256 _newSlot1 = market.slot1.add(_amount);
-                market.slot2 = _newSlot1.div(market.slot1);
+                uint256 _oldSlot2 = market.slot2;
+                market.slot2 = market.slot1.mul(_oldSlot2).div(_newSlot1);
                 market.slot1 = _newSlot1;
             
         } else { // Sell No or slot 2
                 uint256 _newSlot2 = market.slot2.add(_amount);
-                market.slot1 = _newSlot2.div(market.slot2);
+                uint256 _oldSlot1 = market.slot1;
+                market.slot1 = _oldSlot1.mul(market.slot2).div(_newSlot2);
                 market.slot2 = _newSlot2;
 
         }
@@ -311,7 +301,6 @@ contract BinaryMarket is
     function claim(uint256 _questionId)
         external
         nonReentrant
-        onlyQuestion(_questionId)
         onlyResolved(_questionId)
     {
         uint256 slot = questions[_questionId].slot;
@@ -329,8 +318,20 @@ contract BinaryMarket is
         token.safeTransfer(msg.sender, amount);
     }
 
+    function closeQuestion (uint256 _questionId) 
+    external 
+    onlyOwner 
+    onlyUnResolved(_questionId) {
+        
+        questions[_questionId].resolveTime = block.timestamp;
+
+    }
+
     // ------------------- GETTERS -------------------
 
+    function getTotalRewardAmount() public view returns(uint256){
+        return s_TotalRewardAmount;
+    }
     function getTotalQuestions() public view returns (uint256) {
         return _questionIds.current();
     }
@@ -414,6 +415,7 @@ contract BinaryMarket is
             );
     }
 
+    /*
     function getSharesMaxSell(uint256 _questionId, uint8 _slot)
         public
         view
@@ -423,7 +425,7 @@ contract BinaryMarket is
         uint256 volume = getRewardVolume(_questionId);
         return volume.mul(10**18).div(prices[_slot]);
     }
-
+*/
     function getQuestionsLength() public view returns (uint256) {
         return questions.length;
     }
@@ -431,20 +433,24 @@ contract BinaryMarket is
     function getQuestionStatus(uint256 _questionId) public view returns (bool) {
         return questions[_questionId].isPaused;
     }
-
+    function onlyQuestion(uint256 id) private view {
+        require(id < getTotalQuestions(), "Invalid Question");
+    }
     // ------------------- MODIFIERS -------------------
 
-    modifier onlyQuestion(uint256 id) {
-        require(id < getTotalQuestions(), "Invalid Question");
+  /*  modifier onlyQuestion(uint256 id) {
+        onlyQuestion(id);
         _;
-    }
+    }*/
 
     modifier onlyResolved(uint256 id) {
+        onlyQuestion(id);
         require(questions[id].slot < 2, "Not resolved question");
         _;
     }
 
     modifier onlyUnResolved(uint256 id) {
+        onlyQuestion(id);
         require(questions[id].slot == 2, "Already resolved question");
         _;
     }
